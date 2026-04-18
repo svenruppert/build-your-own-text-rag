@@ -1,0 +1,52 @@
+{
+  "models": [
+    {
+      "name": "llama3.2",
+      "modified_at": "2026-03-01T10:00:00Z",
+      "size": 2019393189,
+      "digest": "sha256:aabbccdd1111",
+      "details": {
+        "format": "gguf",
+        "family": "llama",
+        "parameter_size": "3B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "qwen2.5:7b",
+      "modified_at": "2026-03-01T10:01:00Z",
+      "size": 4733162053,
+      "digest": "sha256:aabbccdd2222",
+      "details": {
+        "format": "gguf",
+        "family": "qwen2",
+        "parameter_size": "7B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "phi3",
+      "modified_at": "2026-03-01T10:02:00Z",
+      "size": 2176178689,
+      "digest": "sha256:aabbccdd3333",
+      "details": {
+        "format": "gguf",
+        "family": "phi3",
+        "parameter_size": "3.8B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "nomic-embed-text",
+      "modified_at": "2026-03-01T10:03:00Z",
+      "size": 274301344,
+      "digest": "sha256:aabbccdd4444",
+      "details": {
+        "format": "gguf",
+        "family": "nomic-bert",
+        "parameter_size": "137M",
+        "quantization_level": "F16"
+      }
+    }
+  ]
+}

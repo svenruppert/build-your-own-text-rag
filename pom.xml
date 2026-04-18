@@ -84,6 +84,14 @@
         <!--TDD jUnit5-->
         <junit-platform-maven-plugin.timeout>300</junit-platform-maven-plugin.timeout>
 
+        <!--
+            Workshop toggle. Default false so ${...} interpolation always
+            yields a valid JVM arg. Enable the live smoke test against a
+            locally running Ollama with:
+              mvn test -Dworkshop.live=true
+        -->
+        <workshop.live>false</workshop.live>
+
         <!--        Vaadin Flow Properties-->
         <failOnMissingWebXml>false</failOnMissingWebXml>
         <vaadin.version>25.1.1</vaadin.version>
@@ -214,6 +222,28 @@
             <groupId>org.slf4j</groupId>
             <artifactId>log4j-over-slf4j</artifactId>
             <version>${slf4j-api.version}</version>
+        </dependency>
+
+        <!-- Workshop modules use JUnit 5 for their core-Java tests. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Markdown rendering for assistant chat bubbles (Module 01 onwards). -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>0.22.0</version>
+        </dependency>
+        <!-- GitHub-flavoured pipe tables ("| ... | ... |") are not in the
+             CommonMark core; LLMs produce them routinely. -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-tables</artifactId>
+            <version>0.22.0</version>
         </dependency>
     </dependencies>
 
@@ -381,6 +411,26 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <!--
+                The grandparent pins junit-platform-maven-plugin (sormuras) as
+                the test executor. It forks a JVM for tests and does NOT
+                forward -D flags from the mvn command line by default.
+                Forward the workshop.live toggle explicitly so the live
+                Ollama smoke test can be enabled with:
+                    mvn test -Dworkshop.live=true
+            -->
+            <plugin>
+                <groupId>de.sormuras.junit</groupId>
+                <artifactId>junit-platform-maven-plugin</artifactId>
+                <configuration>
+                    <javaOptions>
+                        <additionalOptions combine.children="append">
+                            <additionalOption>-Dworkshop.live=${workshop.live}</additionalOption>
+                        </additionalOptions>
+                    </javaOptions>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
