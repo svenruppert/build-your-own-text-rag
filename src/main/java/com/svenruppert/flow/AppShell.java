@@ -1,12 +1,12 @@
 package com.svenruppert.flow;
 
-import com.vaadin.flow.component.page.*;
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.component.page.Meta;
+import com.vaadin.flow.component.page.Push;
+import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Typical use cases of AppShell
@@ -26,21 +26,20 @@ public class AppShell
     implements AppShellConfigurator {
 
 
-
   @Override
   public void configurePage(AppShellSettings settings) {
 
-//    settings.addFavIcon("icon",
-//                        "icons/my-favicon.png",
-//                        "32x32");
-//
-//    // Externes CSS
-//    settings.addLink("stylesheet",
-//                     "https://cdn.example.com/styles/global.css");
-//
-//    // Externes Script
-//    settings.addInlineWithContents(
-//        "console.log('Hello from AppShell!');",
-//        Inline.Wrapping.AUTOMATIC);
+    //    settings.addFavIcon("icon",
+    //                        "icons/my-favicon.png",
+    //                        "32x32");
+    //
+    //    // Externes CSS
+    //    settings.addLink("stylesheet",
+    //                     "https://cdn.example.com/styles/global.css");
+    //
+    //    // Externes Script
+    //    settings.addInlineWithContents(
+    //        "console.log('Hello from AppShell!');",
+    //        Inline.Wrapping.AUTOMATIC);
   }
 }

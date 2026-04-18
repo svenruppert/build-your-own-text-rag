@@ -1,0 +1,76 @@
+.about-root {
+    display: flex;
+    justify-content: center;
+    padding: var(--lumo-space-l);
+}
+
+.about-container {
+    width: 100%;
+    max-width: 980px;
+    gap: var(--lumo-space-l);
+}
+
+.about-hero {
+    background: linear-gradient(
+            135deg,
+            var(--lumo-primary-color-10pct),
+            transparent
+    );
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-xl);
+}
+
+.about-card {
+    background: var(--lumo-base-color);
+    border-radius: var(--lumo-border-radius-l);
+    box-shadow: var(--lumo-box-shadow-s);
+    padding: var(--lumo-space-l);
+
+    /* Responsive card layout */
+    min-width: 280px;
+    flex: 1 1 280px;
+}
+
+.about-grid {
+    gap: var(--lumo-space-l);
+}
+
+.about-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+/* Avatar */
+.about-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+    box-shadow: var(--lumo-box-shadow-s);
+    object-fit: cover;
+}
+
+/* Icon row */
+.about-iconrow vaadin-icon {
+    width: var(--lumo-icon-size-s);
+    height: var(--lumo-icon-size-s);
+}
+
+/* Themed links */
+.about-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: var(--lumo-contrast-5pct);
+    box-shadow: var(--lumo-box-shadow-xs);
+}
+
+.about-link__imgicon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+}

@@ -3,6 +3,12 @@ package com.svenruppert.flow;
 import com.svenruppert.flow.views.AboutView;
 import com.svenruppert.flow.views.YoutubeView;
 import com.svenruppert.flow.views.main.MainView;
+import com.svenruppert.flow.views.module01.Module01View;
+import com.svenruppert.flow.views.module02.Module02View;
+import com.svenruppert.flow.views.module03.Module03View;
+import com.svenruppert.flow.views.module04.Module04View;
+import com.svenruppert.flow.views.module05.Module05View;
+import com.svenruppert.flow.views.module06.Module06View;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
@@ -55,6 +61,24 @@ public class MainLayout
     sideNav.addItem(new SideNavItem("Dashboard",
                                     "/" + MainView.PATH,
                                     DASHBOARD.create()),
+                    new SideNavItem("Module 01",
+                                    "/" + Module01View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
+                    new SideNavItem("Module 02",
+                                    "/" + Module02View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
+                    new SideNavItem("Module 03",
+                                    "/" + Module03View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
+                    new SideNavItem("Module 04",
+                                    "/" + Module04View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
+                    new SideNavItem("Module 05",
+                                    "/" + Module05View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
+                    new SideNavItem("Module 06",
+                                    "/" + Module06View.PATH,
+                                    ARROW_CIRCLE_RIGHT.create()),
                     new SideNavItem("Youtube",
                                     "/" + YoutubeView.PATH,
                                     CART.create()),
