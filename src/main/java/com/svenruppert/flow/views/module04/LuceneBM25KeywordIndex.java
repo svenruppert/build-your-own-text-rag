@@ -149,6 +149,13 @@ public final class LuceneBM25KeywordIndex implements KeywordIndex, HasLogger {
     }
 
     @Override
+    public void remove(String id) throws IOException {
+        Objects.requireNonNull(id, "id");
+        writer.deleteDocuments(new Term(FIELD_ID, id));
+        writer.commit();
+    }
+
+    @Override
     public void close() throws IOException {
         try {
             writer.close();

@@ -86,4 +86,24 @@ public interface LlmClient {
      * decide whether to surface an error before sending a prompt.
      */
     boolean isAvailable();
+
+    /**
+     * Thinking-aware completion.
+     *
+     * <p>Sends a non-streaming {@code /api/generate} call with
+     * {@code "think": true} and returns both the user-facing
+     * {@code response} and any reasoning tokens the model emits on
+     * the separate {@code thinking} field.
+     *
+     * <p>The default implementation falls back to {@link #generate}
+     * and returns an empty thinking string -- good enough for
+     * non-Ollama backends or older implementations, but a true
+     * reasoning-aware client overrides this.
+     *
+     * @return a {@link ThinkingReply}, or {@link Optional#empty()} on
+     *         transport / parse failure
+     */
+    default Optional<ThinkingReply> generateWithThinking(String prompt, String model) {
+        return generate(prompt, model).map(ThinkingReply::ofResponseOnly);
+    }
 }

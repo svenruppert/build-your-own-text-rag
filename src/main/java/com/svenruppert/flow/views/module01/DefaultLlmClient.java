@@ -244,4 +244,70 @@ public class DefaultLlmClient implements LlmClient, HasLogger {
             return false;
         }
     }
+
+    /**
+     * Thinking-aware completion. Sends
+     * {@code POST /api/generate} with {@code "think": true} so that
+     * reasoning models (deepseek-r1, qwen3-*thinking*, gpt-oss-*) put
+     * their chain of thought on the dedicated {@code "thinking"} field
+     * instead of leaving it out or mixing it into the response text.
+     *
+     * <p>Older Ollama builds ignore the {@code think} parameter and
+     * omit the {@code thinking} field; the returned
+     * {@link ThinkingReply} then carries an empty {@code thinking}
+     * string, which downstream callers treat as "no reasoning
+     * observed". Non-thinking models behave the same way.
+     */
+    @Override
+    public Optional<ThinkingReply> generateWithThinking(String prompt, String model) {
+        Objects.requireNonNull(prompt, "prompt");
+        Objects.requireNonNull(model, "model");
+
+        ObjectNode payload = objectMapper.createObjectNode()
+                .put("model", model)
+                .put("prompt", prompt)
+                .put("stream", false)
+                .put("think", true);
+        try {
+            String body = objectMapper.writeValueAsString(payload);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(config.baseUrl() + "/api/generate"))
+                    .timeout(config.timeout())
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> response = httpClient.send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                logger().warn("generateWithThinking: unexpected status {} from {}",
+                        response.statusCode(), request.uri());
+                return Optional.empty();
+            }
+            JsonNode root = objectMapper.readTree(response.body());
+            String responseText = textOrEmpty(root.path("response"));
+            String thinkingText = textOrEmpty(root.path("thinking"));
+            return Optional.of(new ThinkingReply(responseText, thinkingText));
+        } catch (IOException e) {
+            logger().warn("generateWithThinking: transport failure: {}", e.getMessage());
+            return Optional.empty();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger().warn("generateWithThinking: interrupted");
+            return Optional.empty();
+        } catch (RuntimeException e) {
+            logger().warn("generateWithThinking: parse/runtime failure: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Reads a string JSON node tolerating both Jackson 3's
+     * {@code isString}/{@code asString} and the classic
+     * {@code isTextual}/{@code asText} names.
+     */
+    private static String textOrEmpty(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) return "";
+        if (node.isTextual()) return node.asText();
+        return "";
+    }
 }

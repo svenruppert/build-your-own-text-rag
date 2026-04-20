@@ -80,6 +80,12 @@ public final class InMemoryVectorStore implements VectorStore, HasLogger {
         entries.clear();
     }
 
+    @Override
+    public void remove(String id) {
+        Objects.requireNonNull(id, "id");
+        entries.remove(id);
+    }
+
     /** Package-private value holder; not part of the public surface. */
     private record Entry(float[] vector, String payload) {
     }

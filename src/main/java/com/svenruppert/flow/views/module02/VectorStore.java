@@ -61,6 +61,19 @@ public interface VectorStore extends AutoCloseable {
     /** Removes every entry. After this call {@link #size()} is {@code 0}. */
     void clear();
 
+    /**
+     * Removes a single entry by id. Absent ids are silently ignored, so
+     * callers can iterate over a foreign key set without pre-filtering.
+     *
+     * <p>Default: {@link UnsupportedOperationException}, so a store that
+     * cannot remove individually still satisfies the interface. Both
+     * concrete stores in this workshop override this.
+     */
+    default void remove(String id) {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " does not support per-id removal");
+    }
+
     /** Default {@link #close()} is a no-op, for in-memory implementations. */
     @Override
     default void close() {

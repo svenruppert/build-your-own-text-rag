@@ -2,6 +2,9 @@ package com.svenruppert.flow.views.module03;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.views.help.ExpandableHelp;
+import com.svenruppert.flow.views.help.HelpEntry;
+import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.button.Button;
@@ -19,11 +22,9 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
-import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.streams.UploadHandler;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,8 +90,17 @@ public class Module03View
   // text-area carries the "Document text" caption so the caption
   // alignment matches the right-hand panel exactly.
   private final TextArea textArea = new TextArea();
-  private final MemoryBuffer uploadBuffer = new MemoryBuffer();
-  private final Upload upload = new Upload(uploadBuffer);
+  /**
+   * Vaadin 25 replaced {@code MemoryBuffer} + succeeded-listener with
+   * {@link UploadHandler#inMemory}: the callback gets the full byte[]
+   * of the completed upload, which we decode as UTF-8 and push into
+   * the text area.
+   */
+  private final Upload upload = new Upload(
+      UploadHandler.inMemory((metadata, bytes) -> {
+        textArea.setValue(new String(bytes, StandardCharsets.UTF_8));
+        Notification.show("Loaded " + metadata.fileName() + " into the text area.");
+      }));
 
   // ------- tabs and per-tab parameters -------------------------------
 
@@ -138,6 +148,9 @@ public class Module03View
     add(buildHeader());
     add(buildUploadRow());
     add(tabs);
+    // Help for the chunker choice lives directly under the tab
+    // strip, so the explanation sits where the eye already is.
+    add(ExpandableHelp.of(ParameterDocs.M3_CHUNKER));
     add(buildParamsAndActionRow());
     add(legend);
     add(buildMainPanelsRow());
@@ -228,17 +241,8 @@ public class Module03View
     upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
     upload.setMaxFiles(1);
     upload.setDropLabel(new Span("Drop a .txt or .md file here"));
-    upload.addSucceededListener(event -> {
-      String name = event.getFileName();
-      try (InputStream in = uploadBuffer.getInputStream()) {
-        String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        textArea.setValue(content);
-        Notification.show("Loaded " + name + " into the text area.");
-      } catch (IOException e) {
-        logger().warn("Upload of {} failed: {}", name, e.getMessage());
-        Notification.show("Upload failed: " + e.getMessage());
-      }
-    });
+    // Ingestion is wired through the UploadHandler in the field
+    // initialiser -- no listener needed here.
 
     HorizontalLayout row = new HorizontalLayout(upload);
     row.setWidthFull();
@@ -334,20 +338,34 @@ public class Module03View
     paramsBox.setSpacing(false);
 
     HorizontalLayout row = new HorizontalLayout();
-    row.setAlignItems(FlexComponent.Alignment.END);
+    row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
 
     Tab selected = tabs.getSelectedTab();
     if (selected == tabFixed) {
-      row.add(fixedSize);
+      row.add(withHelp(fixedSize, ParameterDocs.M3_CHUNK_SIZE));
     } else if (selected == tabOverlap) {
-      row.add(overlapChunkSize, overlapAmount);
+      row.add(
+          withHelp(overlapChunkSize, ParameterDocs.M3_CHUNK_SIZE),
+          withHelp(overlapAmount, ParameterDocs.M3_OVERLAP));
     } else if (selected == tabSentence) {
-      row.add(sentenceTarget);
+      row.add(withHelp(sentenceTarget, ParameterDocs.M3_CHUNK_SIZE));
     } else if (selected == tabStructure) {
-      row.add(structureTarget);
+      row.add(withHelp(structureTarget, ParameterDocs.M3_CHUNK_SIZE));
     }
     paramsBox.add(row);
+  }
+
+  /**
+   * Pairs a per-tab size field with its inline help panel so the
+   * explanation stays attached to its field when the tab switches.
+   */
+  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
+    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
+    column.setPadding(false);
+    column.setSpacing(false);
+    column.setWidth(null);
+    return column;
   }
 
   private void updateStructureTabAvailability() {

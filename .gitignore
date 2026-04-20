@@ -40,3 +40,4 @@ build/
 /src/main/bundles/
 /.idea/
 /.sonarlint/
+/eclipsestore-data/

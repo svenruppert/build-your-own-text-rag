@@ -2,6 +2,9 @@ package com.svenruppert.flow.views.module01;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.views.help.ExpandableHelp;
+import com.svenruppert.flow.views.help.HelpEntry;
+import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.button.Button;
@@ -18,14 +21,12 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
-import com.vaadin.flow.component.upload.receivers.MultiFileMemoryBuffer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.streams.UploadHandler;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -101,12 +102,23 @@ public class Module01View
   private final Checkbox markdownToggle = new Checkbox("Render Markdown", true);
   private final TextArea promptField = new TextArea();
   private final VerticalLayout conversation = new VerticalLayout();
-  private final MultiFileMemoryBuffer uploadBuffer = new MultiFileMemoryBuffer();
-  private final Upload upload = new Upload(uploadBuffer);
   private final HorizontalLayout chips = new HorizontalLayout();
 
   /** Preserves upload order; keys are filenames, values are UTF-8 contents. */
   private final Map<String, String> attachments = new LinkedHashMap<>();
+
+  /**
+   * Vaadin 25 replaced {@code MultiFileMemoryBuffer} + succeeded-listener
+   * with {@link UploadHandler#inMemory}: the callback receives the
+   * completed bytes directly. Runs with the session lock held, so the
+   * chip-strip update is safe to do inline.
+   */
+  private final Upload upload = new Upload(
+      UploadHandler.inMemory((metadata, bytes) -> {
+        attachments.put(metadata.fileName(),
+            new String(bytes, StandardCharsets.UTF_8));
+        renderChips();
+      }));
 
   /** Backing store for rendered bubbles, so we can re-render on toggle change. */
   private final List<ChatMessage> history = new ArrayList<>();
@@ -159,27 +171,37 @@ public class Module01View
     modelSelector.setWidth("24em");
     modelSelector.setMinWidth("20em");
 
-    HorizontalLayout row = new HorizontalLayout(modelSelector, markdownToggle);
-    row.setAlignItems(FlexComponent.Alignment.END);
+    // Each control gets a compact "What is this?" help panel directly
+    // underneath via withHelp(...); closed state is a single subtle
+    // link-style line, open state expands the parameter's HTML body.
+    HorizontalLayout row = new HorizontalLayout(
+        withHelp(modelSelector, ParameterDocs.M1_MODEL),
+        withHelp(markdownToggle, ParameterDocs.M1_MARKDOWN));
+    row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
   }
 
+  /**
+   * Pairs a user-facing control with its inline help panel, stacked
+   * vertically in a tight column. The column preserves the control's
+   * natural width and lets the help's "What is this?" link sit as a
+   * subtle footnote directly underneath.
+   */
+  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
+    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
+    column.setPadding(false);
+    column.setSpacing(false);
+    column.setWidth(null);
+    return column;
+  }
+
   private Component buildUploadRow() {
     upload.setAcceptedFileTypes("text/plain", ".txt", ".md", "text/markdown");
     upload.setMaxFiles(5);
-    upload.addSucceededListener(event -> {
-      String name = event.getFileName();
-      try (InputStream in = uploadBuffer.getInputStream(name)) {
-        String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        attachments.put(name, content);
-        renderChips();
-      } catch (IOException e) {
-        logger().warn("Could not read upload {}: {}", name, e.getMessage());
-        Notification.show("Could not read " + name + ": " + e.getMessage());
-      }
-    });
+    // Attachment bookkeeping is wired through the UploadHandler in the
+    // field initialiser; only the reject listener lives here.
     upload.addFileRejectedListener(event ->
         Notification.show("Rejected: " + event.getErrorMessage()));
     return upload;

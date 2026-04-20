@@ -1,0 +1,46 @@
+/* Workshop help: inline "What is this?" expandable panels attached to
+   every user-facing control across the module views.
+
+   Visual intent: subtle, secondary, out of the way. Closed state reads
+   like a small footnote beside the control; open state is a thin
+   side-bordered card holding 60-140 words of HTML. */
+
+vaadin-details.workshop-help::part(summary) {
+  color: var(--lumo-secondary-text-color);
+  font-size: 0.85em;
+  font-weight: 400;
+  font-style: italic;
+  padding: 0;
+}
+
+vaadin-details.workshop-help::part(summary):hover {
+  color: var(--lumo-primary-text-color);
+  text-decoration: underline;
+}
+
+vaadin-details.workshop-help::part(content) {
+  padding: var(--lumo-space-s);
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--lumo-body-text-color);
+  background: var(--lumo-contrast-5pct);
+  border-left: 2px solid var(--lumo-contrast-10pct);
+  border-radius: 0 var(--lumo-border-radius-s) var(--lumo-border-radius-s) 0;
+}
+
+vaadin-details.workshop-help[opened]::part(content) {
+  margin-top: 0.15em;
+}
+
+.workshop-help-body p { margin: 0 0 0.5em 0; }
+.workshop-help-body p:last-child { margin-bottom: 0; }
+.workshop-help-body ul { margin: 0.2em 0 0.5em 1.2em; padding: 0; }
+.workshop-help-body li { margin: 0 0 0.15em 0; }
+.workshop-help-body code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.92em;
+  background: var(--lumo-contrast-5pct);
+  padding: 0 0.25em;
+  border-radius: 3px;
+}
+.workshop-help-body strong { color: var(--lumo-header-text-color); }

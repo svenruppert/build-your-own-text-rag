@@ -2,6 +2,9 @@ package com.svenruppert.flow.views.module02;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.views.help.ExpandableHelp;
+import com.svenruppert.flow.views.help.HelpEntry;
+import com.svenruppert.flow.views.help.ParameterDocs;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
 import com.svenruppert.flow.views.module01.LlmConfig;
@@ -11,6 +14,7 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -20,6 +24,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
@@ -68,6 +73,7 @@ public class Module02View
   private final TextField addTextField = new TextField("Text to embed");
   private final TextField addIdField = new TextField("Id (optional -- auto if empty)");
   private final TextField addPayloadField = new TextField("Payload (optional)");
+  private final TextArea bulkField = new TextArea("Bulk add -- one text per line");
   private final TextField queryField = new TextField("Query text");
   private final IntegerField topKField = new IntegerField("Top k");
   private final Grid<SearchHit> hitsGrid = new Grid<>(SearchHit.class, false);
@@ -85,7 +91,10 @@ public class Module02View
   public Module02View(LlmClient llmClient) {
     this.llmClient = llmClient;
 
-    setSizeFull();
+    // setSizeFull() would pin this view to the viewport height, so
+    // anything past the bottom gets clipped instead of scrolling. Width
+    // only -- AppLayout's content area scrolls the page natively.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 
@@ -158,11 +167,26 @@ public class Module02View
     modelSelector.setMinWidth("18em");
     activeStoreToggle.getStyle().set("margin-left", "1em");
 
-    HorizontalLayout row = new HorizontalLayout(modelSelector, activeStoreToggle);
-    row.setAlignItems(FlexComponent.Alignment.END);
+    HorizontalLayout row = new HorizontalLayout(
+        withHelp(modelSelector, ParameterDocs.M2_EMBEDDING_MODEL),
+        withHelp(activeStoreToggle, ParameterDocs.M2_ACTIVE_STORE));
+    row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
+  }
+
+  /**
+   * Pairs a user-facing control with its inline help panel in a
+   * tight vertical column. Mirrors the pattern used across the
+   * workshop's module views.
+   */
+  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
+    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
+    column.setPadding(false);
+    column.setSpacing(false);
+    column.setWidth(null);
+    return column;
   }
 
   private Component buildAddRow() {
@@ -172,12 +196,65 @@ public class Module02View
 
     Button addButton = new Button("Add to both stores", event -> onAdd());
 
-    HorizontalLayout row = new HorizontalLayout(
-        addTextField, addIdField, addPayloadField, addButton);
-    row.setAlignItems(FlexComponent.Alignment.END);
-    row.setSpacing(true);
-    row.setWidthFull();
-    return row;
+    // ID and payload get inline help because participants routinely
+    // guess at them; the text field is self-explanatory and stays bare.
+    HorizontalLayout singleRow = new HorizontalLayout(
+        addTextField,
+        withHelp(addIdField, ParameterDocs.M2_ADD_ID),
+        withHelp(addPayloadField, ParameterDocs.M2_ADD_PAYLOAD),
+        addButton);
+    singleRow.setAlignItems(FlexComponent.Alignment.START);
+    singleRow.setSpacing(true);
+    singleRow.setWidthFull();
+
+    // Bulk input lets participants paste or type a batch of texts in
+    // one go; each non-blank line becomes its own entry with an
+    // auto-generated id and the line text as payload. Much faster
+    // than round-tripping the single-row form for every example.
+    bulkField.setWidthFull();
+    bulkField.setMinHeight("10em");
+    bulkField.setPlaceholder(
+        "Paste or type multiple texts, one per line -- each line becomes its own entry."
+            + "\n\nExample:"
+            + "\nEclipseStore persists Java object graphs without an ORM."
+            + "\nJVector is an HNSW index library written in Java."
+            + "\nOllama serves local models through a small HTTP API.");
+    bulkField.setHelperText(
+        "Empty lines are skipped. Id is auto-generated; payload equals the line text.");
+
+    Button bulkAddButton = new Button("Add all lines", event -> onBulkAdd());
+    Button clearBulkButton = new Button("Clear", event -> bulkField.clear());
+
+    HorizontalLayout bulkButtonRow = new HorizontalLayout(bulkAddButton, clearBulkButton);
+    bulkButtonRow.setSpacing(true);
+    bulkButtonRow.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+    bulkButtonRow.setWidthFull();
+
+    // Visible section divider + heading so the bulk area is obviously
+    // a second, separate input path rather than an optional footer
+    // hidden off-screen.
+    Span sectionTitle = new Span("Bulk add -- one entry per line");
+    sectionTitle.getStyle()
+        .set("font-weight", "600")
+        .set("color", "var(--lumo-secondary-text-color)")
+        .set("font-size", "0.95rem");
+    Div divider = new Div();
+    divider.getStyle()
+        .set("border-top", "1px solid var(--lumo-contrast-10pct)")
+        .set("margin", "var(--lumo-space-m) 0 var(--lumo-space-xs) 0")
+        .set("width", "100%");
+
+    VerticalLayout bulkBox = new VerticalLayout(
+        divider, sectionTitle, bulkField, bulkButtonRow);
+    bulkBox.setPadding(false);
+    bulkBox.setSpacing(false);
+    bulkBox.setWidthFull();
+
+    VerticalLayout box = new VerticalLayout(singleRow, bulkBox);
+    box.setPadding(false);
+    box.setSpacing(true);
+    box.setWidthFull();
+    return box;
   }
 
   private Component buildQueryRow() {
@@ -186,8 +263,11 @@ public class Module02View
 
     Button searchButton = new Button("Search", event -> onSearch());
 
-    HorizontalLayout row = new HorizontalLayout(queryField, topKField, searchButton);
-    row.setAlignItems(FlexComponent.Alignment.END);
+    HorizontalLayout row = new HorizontalLayout(
+        queryField,
+        withHelp(topKField, ParameterDocs.M2_TOP_K),
+        searchButton);
+    row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
@@ -266,6 +346,69 @@ public class Module02View
     addTextField.clear();
     addIdField.clear();
     addPayloadField.clear();
+    refreshSizeFooter();
+  }
+
+  /**
+   * Embeds each non-blank line in {@link #bulkField} and inserts it
+   * into both stores. Failures (embedding error, dimension clash)
+   * are counted and surfaced in a single summary notification so a
+   * partial batch still produces a useful amount of corpus.
+   */
+  private void onBulkAdd() {
+    if (inMemoryStore == null || jvectorStore == null) {
+      Notification.show("Stores are not initialised yet.");
+      return;
+    }
+    String raw = bulkField.getValue();
+    if (raw == null || raw.isBlank()) {
+      Notification.show("Enter at least one line to embed first.");
+      return;
+    }
+    List<String> lines = raw.lines()
+        .map(String::strip)
+        .filter(s -> !s.isEmpty())
+        .toList();
+    if (lines.isEmpty()) {
+      Notification.show("All lines were blank.");
+      return;
+    }
+
+    String model = resolveModel();
+    int added = 0;
+    int embedFailed = 0;
+    int rejected = 0;
+    for (String line : lines) {
+      Optional<float[]> maybeVec = llmClient.embed(line, model);
+      if (maybeVec.isEmpty()) {
+        embedFailed++;
+        continue;
+      }
+      String id = "auto-" + UUID.randomUUID().toString().substring(0, 8);
+      try {
+        inMemoryStore.add(id, maybeVec.get(), line);
+        jvectorStore.add(id, maybeVec.get(), line);
+        added++;
+      } catch (IllegalArgumentException e) {
+        // Most likely a dimension clash: once the first vector fixes
+        // the corpus dimension, later ones with a different model
+        // cannot be mixed in. Stop early -- the message would repeat.
+        rejected++;
+        logger().warn("Bulk add rejected line '{}': {}", line, e.getMessage());
+        break;
+      }
+    }
+
+    StringBuilder msg = new StringBuilder("Bulk add: ")
+        .append(added).append(" added");
+    if (embedFailed > 0) msg.append(", ").append(embedFailed).append(" embed-failed");
+    if (rejected > 0) msg.append(", ").append(rejected)
+        .append(" rejected (dimension clash -- stopped early)");
+    Notification.show(msg.toString());
+
+    if (added > 0 && embedFailed == 0 && rejected == 0) {
+      bulkField.clear();
+    }
     refreshSizeFooter();
   }
 

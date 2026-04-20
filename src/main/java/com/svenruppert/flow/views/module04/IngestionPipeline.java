@@ -8,8 +8,10 @@ import com.svenruppert.flow.views.module03.Chunker;
 import com.svenruppert.flow.views.module03.Document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,5 +87,30 @@ public final class IngestionPipeline implements HasLogger {
         chunkRegistry.clear();
         vectorStore.clear();
         keywordIndex.clear();
+    }
+
+    /**
+     * Removes every chunk whose id starts with {@code sourceName + "::"}
+     * from the registry and both stores. No-op for sources that have
+     * never been ingested; returns the number of chunks actually removed.
+     *
+     * <p>Requires both stores to support per-id removal
+     * ({@link VectorStore#remove(String)},
+     * {@link com.svenruppert.flow.views.module04.KeywordIndex#remove(String)}).
+     * Surfaces as {@link UnsupportedOperationException} otherwise.
+     */
+    public int removeSource(String sourceName) throws IOException {
+        Objects.requireNonNull(sourceName, "sourceName");
+        String prefix = sourceName + "::";
+        List<String> matching = new ArrayList<>();
+        for (String id : chunkRegistry.keySet()) {
+            if (id.startsWith(prefix)) matching.add(id);
+        }
+        for (String id : matching) {
+            chunkRegistry.remove(id);
+            vectorStore.remove(id);
+            keywordIndex.remove(id);
+        }
+        return matching.size();
     }
 }

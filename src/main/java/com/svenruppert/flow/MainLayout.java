@@ -2,6 +2,7 @@ package com.svenruppert.flow;
 
 import com.svenruppert.flow.views.AboutView;
 import com.svenruppert.flow.views.YoutubeView;
+import com.svenruppert.flow.views.glossary.GlossaryView;
 import com.svenruppert.flow.views.main.MainView;
 import com.svenruppert.flow.views.module01.Module01View;
 import com.svenruppert.flow.views.module02.Module02View;
@@ -84,7 +85,12 @@ public class MainLayout
                                     CART.create()),
                     new SideNavItem("About",
                                     "/" + AboutView.PATH,
-                                    USER_HEART.create())
+                                    USER_HEART.create()),
+                    // Reference material lives below the modules so the
+                    // workshop's core progression stays visually primary.
+                    new SideNavItem("Glossary",
+                                    "/" + GlossaryView.PATH,
+                                    BOOK.create())
     );
     return sideNav;
   }

@@ -186,6 +186,17 @@ public final class EclipseStoreJVectorStore implements VectorStore, HasLogger {
     }
 
     @Override
+    public synchronized void remove(String id) {
+        Objects.requireNonNull(id, "id");
+        RawVectorEntry previous = root.entries().remove(id);
+        if (previous == null) return;
+        storageManager.store(root.entries());
+        // HNSW graph cannot remove a node cheaply; mark dirty so the
+        // next search rebuilds the snapshot from the surviving entries.
+        indexDirty = true;
+    }
+
+    @Override
     public synchronized void close() {
         if (storageManager.isActive()) {
             storageManager.shutdown();

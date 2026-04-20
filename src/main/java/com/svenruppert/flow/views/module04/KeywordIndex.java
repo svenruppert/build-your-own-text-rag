@@ -31,6 +31,18 @@ public interface KeywordIndex extends AutoCloseable {
     /** Empties the index without releasing any native/IO resources. */
     void clear() throws IOException;
 
+    /**
+     * Removes a single document by id. Absent ids are silently ignored.
+     *
+     * <p>Default: {@link UnsupportedOperationException}, so an index
+     * that cannot remove individually still satisfies the interface.
+     * The workshop's Lucene backend overrides this.
+     */
+    default void remove(String id) throws IOException {
+        throw new UnsupportedOperationException(
+                getClass().getSimpleName() + " does not support per-id removal");
+    }
+
     @Override
     void close() throws IOException;
 }

@@ -1,0 +1,99 @@
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>RAG architecture inside a single JVM: indexing and query flows sharing one vector store</title>
+  <desc>A high-level architectural diagram of a Retrieval-Augmented Generation system running inside a single Java Virtual Machine. A dashed boundary frames all services, labelled JVM with the subtitle single process, Vaadin UI, Ollama client. The upper blue band shows the indexing flow: documents pass through a chunker and an embedder, and vectors flow downward into the central vector store. The dark central element is the vector store using EclipseStore with JVector: persistent raw vectors, in-memory HNSW index. The lower orange band shows the query flow: a user query is embedded, then the retrieve step interacts with the vector store to obtain top-k chunks, after which the prompt is assembled and sent to the language model, whose answer reaches the Vaadin UI.</desc>
+
+  <defs>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0B72E7"/>
+    </marker>
+    <marker id="arrOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#EA580C"/>
+    </marker>
+  </defs>
+
+  <!-- JVM boundary -->
+  <rect x="24" y="24" width="1552" height="852" rx="20" fill="none"
+        stroke="#475569" stroke-width="1.5" stroke-dasharray="10 6" opacity="0.7"/>
+
+  <!-- JVM label (top-right, mirrors zone-label style) -->
+  <rect x="1556" y="32" width="4" height="54" fill="#1F2937"/>
+  <text x="1548" y="54" text-anchor="end" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937" letter-spacing="5">JVM</text>
+  <text x="1548" y="78" text-anchor="end" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">single process · Vaadin UI · Ollama client</text>
+
+  <!-- Zone bands (inside the JVM boundary) -->
+  <rect x="26" y="104" width="1548" height="226" fill="#0B72E7" fill-opacity="0.045"/>
+  <rect x="26" y="590" width="1548" height="266" fill="#EA580C" fill-opacity="0.045"/>
+
+  <!-- Zone accent bars -->
+  <rect x="60" y="124" width="4" height="52" fill="#0B72E7"/>
+  <rect x="60" y="610" width="4" height="52" fill="#EA580C"/>
+
+  <!-- Zone labels -->
+  <text x="80" y="150" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#0B72E7" letter-spacing="5">INDEXING TIME</text>
+  <text x="80" y="174" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" fill="#64748B">Offline · documents become searchable vectors</text>
+
+  <text x="80" y="636" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#EA580C" letter-spacing="5">QUERY TIME</text>
+  <text x="80" y="660" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" fill="#64748B">Online · a question becomes a grounded answer</text>
+
+  <!-- ====== INDEXING ROW ====== -->
+  <rect x="100" y="210" width="200" height="80" rx="10" fill="#FFFFFF" stroke="#0B72E7" stroke-width="2"/>
+  <text x="200" y="246" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Documents</text>
+  <text x="200" y="270" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">PDF · Markdown · Text</text>
+
+  <rect x="400" y="210" width="200" height="80" rx="10" fill="#FFFFFF" stroke="#0B72E7" stroke-width="2"/>
+  <text x="500" y="246" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Chunker</text>
+  <text x="500" y="270" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">split into passages</text>
+
+  <rect x="700" y="210" width="200" height="80" rx="10" fill="#FFFFFF" stroke="#0B72E7" stroke-width="2"/>
+  <text x="800" y="246" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Embedder</text>
+  <text x="800" y="270" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">Ollama · nomic-embed</text>
+
+  <line x1="308" y1="250" x2="392" y2="250" stroke="#0B72E7" stroke-width="3" marker-end="url(#arrBlue)"/>
+  <line x1="608" y1="250" x2="692" y2="250" stroke="#0B72E7" stroke-width="3" marker-end="url(#arrBlue)"/>
+  <line x1="800" y1="298" x2="800" y2="372" stroke="#0B72E7" stroke-width="3" marker-end="url(#arrBlue)"/>
+
+  <!-- ====== VECTOR STORE ====== -->
+  <rect x="550" y="380" width="500" height="140" rx="14" fill="#0F172A"/>
+  <rect x="550" y="380" width="500" height="140" rx="14" fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.55"/>
+  <text x="800" y="418" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#06B6D4" letter-spacing="6">VECTOR STORE</text>
+  <text x="800" y="458" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#FFFFFF">EclipseStore · JVector</text>
+  <text x="800" y="490" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" fill="#94A3B8">persistent raw vectors · in-memory HNSW index</text>
+
+  <!-- ====== Retrieval round-trip ====== -->
+  <line x1="782" y1="702" x2="782" y2="532" stroke="#EA580C" stroke-width="2.25" stroke-dasharray="7 4" marker-end="url(#arrOrange)"/>
+  <text x="770" y="620" text-anchor="end" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#EA580C" font-style="italic">query vector</text>
+
+  <line x1="818" y1="532" x2="818" y2="702" stroke="#EA580C" stroke-width="2.25" stroke-dasharray="7 4" marker-end="url(#arrOrange)"/>
+  <text x="830" y="620" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#EA580C" font-style="italic">top-k chunks</text>
+
+  <!-- ====== QUERY ROW (6 boxes, Retrieve aligned under Vector Store) ====== -->
+  <rect x="275" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="360" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Query</text>
+  <text x="360" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">user question</text>
+
+  <rect x="495" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="580" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Embedder</text>
+  <text x="580" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">Ollama · nomic-embed</text>
+
+  <rect x="715" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="800" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Retrieve</text>
+  <text x="800" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">top-k nearest</text>
+
+  <rect x="935" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="1020" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Prompt</text>
+  <text x="1020" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">context + question</text>
+
+  <rect x="1155" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="1240" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">LLM</text>
+  <text x="1240" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">Ollama · Llama 3.2</text>
+
+  <rect x="1375" y="710" width="170" height="80" rx="10" fill="#FFFFFF" stroke="#EA580C" stroke-width="2"/>
+  <text x="1460" y="746" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#1F2937">Vaadin UI</text>
+  <text x="1460" y="770" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" fill="#64748B">answer to user</text>
+
+  <line x1="453" y1="750" x2="487" y2="750" stroke="#EA580C" stroke-width="3" marker-end="url(#arrOrange)"/>
+  <line x1="673" y1="750" x2="707" y2="750" stroke="#EA580C" stroke-width="3" marker-end="url(#arrOrange)"/>
+  <line x1="893" y1="750" x2="927" y2="750" stroke="#EA580C" stroke-width="3" marker-end="url(#arrOrange)"/>
+  <line x1="1113" y1="750" x2="1147" y2="750" stroke="#EA580C" stroke-width="3" marker-end="url(#arrOrange)"/>
+  <line x1="1333" y1="750" x2="1367" y2="750" stroke="#EA580C" stroke-width="3" marker-end="url(#arrOrange)"/>
+</svg>

@@ -8,17 +8,23 @@ import java.util.function.Consumer;
 /**
  * Turns a query plus retrieved chunks into a grounded answer.
  *
- * <p>The {@code tokenSink} {@link Consumer} is invoked on each token
- * as it arrives from the model -- the Module 05 view uses this hook
- * to stream tokens into the DOM via {@code UI.access()}. The sink is
- * called from the same thread that runs {@link #generate}, which is
- * typically a worker thread outside the UI-lock; implementations MUST
- * call the sink in the order they see the tokens. They MAY batch
- * tokens if the transport delivers them coalesced -- Ollama sometimes
- * emits multi-character chunks.
+ * <p>Two overloads:
+ * <ul>
+ *   <li>The 4-argument {@link #generate(String, List, String, Consumer)}
+ *       is the stable contract every implementation must provide. Its
+ *       {@code tokenSink} receives user-facing answer tokens only.</li>
+ *   <li>The 5-argument
+ *       {@link #generate(String, List, String, Consumer, Consumer)} adds
+ *       a separate {@code thinkingSink} for the reasoning tokens a
+ *       thinking model emits (see {@link StreamEvent.Thinking}). The
+ *       default implementation delegates to the 4-argument variant,
+ *       losing the thinking channel. Implementations that speak to a
+ *       thinking-aware backend should override this.</li>
+ * </ul>
  *
- * <p>A {@code null} tokenSink is treated as a no-op: callers that do
- * not care about streaming can pass {@code null} without branching.
+ * <p>Sinks are invoked on the same thread that runs
+ * {@code generate()}, typically a worker thread outside the UI lock.
+ * A {@code null} sink is treated as a no-op consumer.
  */
 public interface Generator {
 
@@ -26,4 +32,17 @@ public interface Generator {
                              List<RetrievalHit> hits,
                              String model,
                              Consumer<String> tokenSink);
+
+    /**
+     * Thinking-aware variant. Default implementation delegates to the
+     * 4-argument version; override for models that separate reasoning
+     * tokens from answer tokens.
+     */
+    default GeneratedAnswer generate(String query,
+                                     List<RetrievalHit> hits,
+                                     String model,
+                                     Consumer<String> tokenSink,
+                                     Consumer<String> thinkingSink) {
+        return generate(query, hits, model, tokenSink);
+    }
 }
