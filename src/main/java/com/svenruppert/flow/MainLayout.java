@@ -32,7 +32,7 @@ public class MainLayout
   }
 
   private void createHeader() {
-    H1 appTitle = new H1("Vaadin Flow Demo");
+    H1 appTitle = new H1("Build Your Own Text RAG");
 
     SideNav views = getPrimaryNavigation();
     Scroller scroller = new Scroller(views);

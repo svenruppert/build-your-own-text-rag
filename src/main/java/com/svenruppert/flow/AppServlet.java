@@ -7,10 +7,8 @@ import jakarta.servlet.ServletException;
 
 /**
  * Vaadin servlet bootstrap for the application.
- * Responsibilities:
- * - Use the browser locale as default (Accept-Language -> UI locale).
- * - Constrain to supported locales (DE/EN/FI).
- * - Allow session-scoped language selection (overrides browser locale).
+ * Registers a session-scoped error handler that logs unhandled exceptions
+ * through SLF4J instead of printing them to stderr.
  */
 public class AppServlet
     extends VaadinServlet
@@ -22,10 +20,9 @@ public class AppServlet
     super.servletInitialized();
     logger().info("servletInitialized .. started");
     VaadinServletService service = getService();
-    service.addSessionInitListener(e -> {
-      e.getSession().setErrorHandler(err -> err.getThrowable().printStackTrace());
-    });
-    //service.addSessionInitListener();
+    service.addSessionInitListener(e ->
+        e.getSession().setErrorHandler(
+            err -> logger().error("Unhandled session error", err.getThrowable())));
   }
 
 

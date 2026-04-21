@@ -1,66 +1,91 @@
-# core-vaadin-project-template
+# Build Your Own Text RAG
 
-A Template that can be used to start a Core Vaadin Flow Project.
-In this demo you will find a simple UI, based on Vaadin Flow.
+A hands-on Vaadin Flow workshop that walks through building a text-based
+**Retrieval-Augmented Generation (RAG)** system step by step -- from a
+bare LLM client all the way to a production-style product view.
 
-## What is offered by this template?
+---
 
-* TDD with Junit5
-* MutationCoverage with PiTest
-* Compile via Dockerimage
-* Deployment via Dockerimage
-* Development Dockerimage with JDK and Maven
-* Production Dockerimage with JDK
-* Issuetracker via Github Issues
-* Projectplanning via Github Projects
-* Create SBOM (cyclonedx)
-* Dependency Version Management via versions plugin
-* Integration Tests for the REST Server
-*
+## Workshop structure
 
-## Vulnerability - Hunting
+The project is organised into six modules that correspond to successive
+layers of the RAG pipeline.  Each module adds one piece and extends the
+previous:
 
-Even in small projects it is importand to scann for vulnerabilities.
-But mostly there is no budget for personal projects.
-What should you do? Well, you can combine different free offerings
-to see who is reporting faster in wich case. Most vendors are implementing it as Github-PR.
-So, see who is fast and what you will get.
-I will list a few provider so that you have a solid base to start with.
+| Module | View | Topic |
+|--------|------|-------|
+| 01 | `Module01` | LLM client -- HTTP calls to Ollama, streaming responses |
+| 02 | `Module02` | Vector store -- cosine similarity, in-memory and EclipseStore-backed |
+| 03 | `Module03` | Document loading and chunking (fixed-size, sentence, structure-aware) |
+| 04 | `Module04` | Retrieval Lab -- Vector, BM25, Hybrid (RRF), LLM-as-judge reranker |
+| 05 | `Module05` | Ask Lab -- end-to-end RAG with streaming answers and grounding check |
+| 06 | `Module06` | RAG Product -- product framing, persistent store, no tuning knobs |
 
-* Snyk: https://snyk.io/
-* OXSecurity: https://app.ox.security/
-* FaradaySec: https://faradaysec.com/
+---
 
-## Todos
+## Prerequisites
 
-* Wie mache ich ein release? -jreleaser?
-* Compile in Docker
-* Run in Docker - Webservices..
-* PiTest in Docker mit Source Snapshot
+| Tool | Version / Note |
+|------|----------------|
+| Java | 25 (Temurin recommended) |
+| Maven | 3.9.9 or later |
+| Vaadin | 25.1.1 (managed by POM) |
+| [Ollama](https://ollama.ai/) | Running locally on `http://localhost:11434` |
 
-## How to start
+### Required Ollama models
 
-* search and replace inside pom.xml - "https://github.com/svenruppert/core-vaadin-project-template" with your coordinates.
-* define what is your JDK you want to use and change it - default is the latest Temurin LTS
-  * inside the Docker image definitions
-  * inside your pom.xml
-* change the properties **pitest-prod-classes** and **pitest-test-classes**
-* change the properties for the deployment repositories
-* change the repositories, you are resolving from. Default is maven central
-* if you have a main class, change the property **app.main.class** or comment it out
-* create the docker images under _tools/docker
-  * develop/build.sh
-  * runtime/build.sh
-  * application/build.sh - first time after you created your shaded application.jar
+```
+ollama pull nomic-embed-text   # text embeddings (all modules)
+ollama pull llama3.2           # generation + grounding (modules 05/06)
+```
 
-## Docker Images for Develop and Runtime
+Any Ollama-compatible embedding and chat model can be swapped in via
+`LlmConfig` -- the workshop defaults are shown above.
 
-### Developer Images
+---
 
-Here we are creating an image with JDK and maven (or gradle if you are using it).
+## Starting the application
 
-### Best practices
+```bash
+# Run in development mode (hot reload, dev tools)
+mvn jetty:run
+```
 
-From time to time update the core Images with the latest updates on OS system base.
-For this tag the image with the update date, so tht everybody know how old the updated
-image is.
+Then open `http://localhost:8080` in your browser.
+
+---
+
+## Running the tests
+
+```bash
+# Unit tests (no Ollama required)
+mvn test
+
+# Include live Ollama smoke tests (requires a running Ollama instance)
+mvn test -Dworkshop.live=true
+```
+
+The live smoke test (`LiveOllamaSmokeTest`) is skipped by default so the
+build does not depend on a local Ollama installation in CI.
+
+---
+
+## Demo data
+
+Sample documents for the workshop are located in `_demo-data/`.  Drop any
+`.txt` or `.md` file into the upload area of Module 03 - 06 to try the
+pipeline with your own content.
+
+---
+
+## Project tooling
+
+- **Mutation testing:** `mvn org.pitest:pitest-maven:mutationCoverage`
+- **SBOM generation:** `mvn cyclonedx:makeAggregateBom`
+- **Dependency updates:** `mvn versions:display-dependency-updates`
+
+---
+
+## License
+
+Apache License 2.0 -- see [LICENSE](LICENSE).

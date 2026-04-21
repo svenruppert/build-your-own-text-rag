@@ -46,6 +46,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Module 6 -- product framing of the RAG stack built in modules 1-5.
@@ -690,31 +692,44 @@ public class Module06View
     UI ui = UI.getCurrent();
     StringBuilder live = new StringBuilder();
     StringBuilder liveThinking = new StringBuilder();
+    // Throttle: push answer tokens to the UI at most every 75 ms.
+    // The final render in finalise() always shows the complete text.
+    AtomicLong lastAnswerPush = new AtomicLong(0);
+    AtomicLong lastThinkingPush = new AtomicLong(0);
+    AtomicBoolean thinkingVisible = new AtomicBoolean(false);
 
     Thread.ofVirtual().name("m6-ask-" + System.currentTimeMillis()).start(() -> {
       try {
         GeneratedAnswer answer = ragSystem.ask(query,
             token -> {
               live.append(token);
-              String snapshot = live.toString();
-              ui.access(() -> answerDiv.setText(snapshot));
+              long now = System.currentTimeMillis();
+              if (now - lastAnswerPush.get() >= 75) {
+                lastAnswerPush.set(now);
+                String snapshot = live.toString();
+                ui.access(() -> answerDiv.setText(snapshot));
+              }
             },
             thinkingToken -> {
               liveThinking.append(thinkingToken);
-              String snapshot = liveThinking.toString();
-              int chars = snapshot.length();
-              ui.access(() -> {
-                // First thinking token -> reveal the panel. Auto-open
-                // so users notice their model is emitting reasoning;
-                // they can collapse it manually.
-                if (!thinkingDetails.isVisible()) {
-                  thinkingDetails.setVisible(true);
-                  thinkingDetails.setOpened(true);
-                }
-                thinkingDiv.setText(snapshot);
-                thinkingDetails.setSummaryText(
-                    "Thinking (" + chars + " chars)");
-              });
+              long now = System.currentTimeMillis();
+              boolean firstToken = thinkingVisible.compareAndSet(false, true);
+              if (firstToken || now - lastThinkingPush.get() >= 75) {
+                lastThinkingPush.set(now);
+                String snapshot = liveThinking.toString();
+                int chars = snapshot.length();
+                ui.access(() -> {
+                  // First thinking token: reveal the panel so users
+                  // notice their model is emitting reasoning.
+                  if (firstToken) {
+                    thinkingDetails.setVisible(true);
+                    thinkingDetails.setOpened(true);
+                  }
+                  thinkingDiv.setText(snapshot);
+                  thinkingDetails.setSummaryText(
+                      "Thinking (" + chars + " chars)");
+                });
+              }
             },
             stage -> ui.access(() -> applyStage(stage)));
         ui.access(() -> finalise(answer));

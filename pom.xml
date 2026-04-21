@@ -24,7 +24,7 @@
 
     <url>https://github.com/svenruppert/build-your-own-text-rag</url>
     <name>Build Your Own Text RAG</name>
-    <description>A compact, self-hosted multimodal RAG demo in Core Java that turns images into privacy-aware, semantically searchable knowledge.</description>
+    <description>A hands-on Vaadin Flow workshop that walks through building a text-based RAG (Retrieval-Augmented Generation) system step by step, from LLM client to production-ready product view.</description>
     <scm>
         <url>https://github.com/svenruppert/build-your-own-text-rag</url>
         <connection>scm:git:https://github.com/svenruppert/build-your-own-text-rag.git</connection>
@@ -78,8 +78,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <pitest-prod-classes>com.svenruppert.*</pitest-prod-classes>
-        <pitest-test-classes>junit.com.svenruppert.*</pitest-test-classes>
+        <pitest-prod-classes>com.svenruppert.flow.*</pitest-prod-classes>
+        <pitest-test-classes>com.svenruppert.flow.*</pitest-test-classes>
 
         <!--TDD jUnit5-->
         <junit-platform-maven-plugin.timeout>300</junit-platform-maven-plugin.timeout>
@@ -493,8 +493,6 @@
             </plugin>
         </plugins>
     </build>
-
-
     <reporting>
         <plugins>
             <plugin>
@@ -511,7 +509,6 @@
 
         </plugins>
     </reporting>
-
     <profiles>
         <profile>
             <id>_java</id>
@@ -613,6 +610,5 @@
                 </plugins>
             </build>
         </profile>
-
     </profiles>
 </project>
