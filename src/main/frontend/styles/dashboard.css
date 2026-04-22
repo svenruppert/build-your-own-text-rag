@@ -1,0 +1,145 @@
+/* Dashboard (MainView) layout and zone styles. */
+
+.dashboard-zone {
+  padding: var(--lumo-space-l) var(--lumo-space-xl);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.dashboard-divider {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  border-top: 1px solid var(--lumo-contrast-10pct);
+}
+
+/* Hero zone */
+
+.dashboard-hero {
+  background: linear-gradient(135deg,
+      var(--lumo-primary-color-10pct) 0%,
+      transparent 60%);
+  padding-top: 40px;
+  padding-bottom: 24px;
+}
+
+.dashboard-hero h1 {
+  margin: 0 0 0.35em 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--lumo-primary-text-color);
+  letter-spacing: -0.01em;
+}
+
+.dashboard-hero p {
+  margin: 0;
+  max-width: 640px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--lumo-secondary-text-color);
+}
+
+/* Module card grid */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--lumo-space-l);
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-left-width: 4px !important;
+}
+
+.dashboard-card:focus-visible {
+  outline: 2px solid var(--lumo-primary-color);
+  outline-offset: 2px;
+}
+
+.dashboard-zone h2 {
+  margin: 0 0 var(--lumo-space-m) 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--lumo-primary-text-color);
+}
+
+/* System status zone */
+
+.dashboard-system-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--lumo-space-l);
+}
+
+@media (max-width: 700px) {
+  .dashboard-system-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-panel {
+  border: 1px solid var(--lumo-contrast-10pct);
+  border-radius: 12px;
+  padding: var(--lumo-space-l);
+  background: var(--lumo-base-color);
+}
+
+.dashboard-panel h3 {
+  margin: 0 0 var(--lumo-space-s) 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.dashboard-muted {
+  color: var(--lumo-secondary-text-color);
+  font-size: 0.9rem;
+}
+
+.dashboard-digest {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+  color: var(--lumo-tertiary-text-color);
+}
+
+.dashboard-model-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lumo-space-s);
+  padding: 0.35em 0.5em;
+  border-radius: 6px;
+}
+
+.dashboard-model-missing-required {
+  background: var(--lumo-error-color-10pct);
+}
+
+/* Resources zone */
+
+.dashboard-resources-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--lumo-space-l);
+}
+
+@media (max-width: 700px) {
+  .dashboard-resources-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-link {
+  color: var(--lumo-secondary-text-color);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.2em 0;
+}
+
+.dashboard-link:hover {
+  text-decoration: underline;
+}

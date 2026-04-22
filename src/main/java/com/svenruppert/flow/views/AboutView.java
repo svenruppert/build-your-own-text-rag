@@ -52,9 +52,9 @@ public class AboutView
     versionBadge.getElement().setAttribute("theme", "badge primary pill");
 
     H1 title = new H1("About");
-    Paragraph subtitle = new Paragraph("Vaadin Flow Demo Application");
+    Paragraph subtitle = new Paragraph("Build Your Own Text RAG Workshop");
     Paragraph description = new Paragraph(
-        "This demo showcases polished UI patterns with Vaadin Flow — cards, badges, icons, and a responsive layout."
+        "This workshop shows how a text-based RAG pipeline grows from a minimal Ollama client into a Vaadin Flow product view."
     );
 
     HorizontalLayout heroHeader = new HorizontalLayout(title, versionBadge);

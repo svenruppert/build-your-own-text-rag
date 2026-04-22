@@ -1,5 +1,7 @@
 package com.svenruppert.flow.views.module06;
 
+import com.svenruppert.flow.WorkshopDefaults;
+
 /**
  * Hard-wired production defaults for the Module 6 demo system.
  *
@@ -14,19 +16,19 @@ package com.svenruppert.flow.views.module06;
 final class ProductConfig {
 
     /**
-     * Embedding model. {@code nomic-embed-text} is the workshop's
-     * default embedder -- small, fast, and available on every Ollama
-     * install after a single pull.
+     * Embedding model. Kept in lockstep with the workshop-wide default
+     * so the lab and product views retrieve against the same vector
+     * space out of the box.
      */
-//    public static final String DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
-    public static final String DEFAULT_EMBEDDING_MODEL = "nomic-embed-text-v2-moe";
+    public static final String DEFAULT_EMBEDDING_MODEL =
+            WorkshopDefaults.DEFAULT_EMBEDDING_MODEL;
 
     /**
-     * Generation model. {@code llama3.2} is the smallest instruction
-     * model most laptops can run at interactive speed; swappable for
-     * anything Ollama serves.
+     * Generation model. Kept in lockstep with the workshop-wide default;
+     * swappable for anything Ollama serves.
      */
-    public static final String DEFAULT_GENERATION_MODEL = "gemma4:e4b";
+    public static final String DEFAULT_GENERATION_MODEL =
+            WorkshopDefaults.DEFAULT_GENERATION_MODEL;
 
     /**
      * Target chunk size in characters for the {@code SentenceChunker}.

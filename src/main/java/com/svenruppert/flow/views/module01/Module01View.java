@@ -2,11 +2,12 @@ package com.svenruppert.flow.views.module01;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.HelpEntry;
+import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -23,9 +24,6 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Two-stage chat UI against a local Ollama server -- the user-facing half
@@ -74,27 +71,9 @@ public class Module01View
 
   public static final String PATH = "Module01";
 
-  private static final String FALLBACK_MODEL = "llama3.2";
+  private static final String FALLBACK_MODEL = WorkshopDefaults.DEFAULT_GENERATION_MODEL;
   private static final String USER_BUBBLE_COLOUR = "#e7f0ff";
   private static final String ASSISTANT_BUBBLE_COLOUR = "#f3f3f3";
-
-  // One shared Markdown pipeline. Parser and renderer are stateless and
-  // safe to reuse across the entire session.
-  // GFM pipe tables are not in the CommonMark core; LLMs love them, so we
-  // pull in the commonmark-ext-gfm-tables extension on both ends of the
-  // pipeline.
-  private static final Set<org.commonmark.Extension> MARKDOWN_EXTENSIONS =
-      Set.of(TablesExtension.create());
-  private static final Parser MARKDOWN_PARSER = Parser.builder()
-      .extensions(MARKDOWN_EXTENSIONS)
-      .build();
-  private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder()
-      .extensions(MARKDOWN_EXTENSIONS)
-      // Escape raw HTML embedded in the Markdown source to avoid letting
-      // a rogue LLM output <script> tags into the UI.
-      .escapeHtml(true)
-      .sanitizeUrls(true)
-      .build();
 
   private final LlmClient client;
 
@@ -166,7 +145,7 @@ public class Module01View
   }
 
   private Component buildControlsRow() {
-    // Model names can be long ("nomic-embed-text", "qwen2.5:7b-instruct-q4_K_M");
+    // Model names can be long ("nomic-embed-text-v2-moe", "qwen2.5:7b-instruct-q4_K_M");
     // give the combo a generous fixed width so nothing is truncated.
     modelSelector.setWidth("24em");
     modelSelector.setMinWidth("20em");
@@ -233,7 +212,7 @@ public class Module01View
               + FALLBACK_MODEL + "'.");
     }
     modelSelector.setItems(names);
-    modelSelector.setValue(names.get(0));
+    modelSelector.setValue(WorkshopDefaults.preferredGenerationModel(names));
   }
 
   private void renderChips() {
@@ -295,7 +274,7 @@ public class Module01View
     // Colourise any fenced code blocks produced by the Markdown renderer.
     // No-op in plain-text mode because there are no <pre><code> elements.
     if (Boolean.TRUE.equals(markdownToggle.getValue())) {
-      highlightCodeBlocks();
+      MarkdownSupport.highlightCodeBlocks(conversation);
     }
   }
 
@@ -304,20 +283,6 @@ public class Module01View
    * conversation layout. Retries briefly until {@code window.hljs} is
    * available, in case the CDN script has not finished loading yet.
    */
-  private void highlightCodeBlocks() {
-    conversation.getElement().executeJs(
-        "const host = this;"
-            + "function run() {"
-            + "  if (window.hljs) {"
-            + "    host.querySelectorAll('pre code').forEach("
-            + "      c => window.hljs.highlightElement(c));"
-            + "  } else {"
-            + "    setTimeout(run, 50);"
-            + "  }"
-            + "}"
-            + "run();");
-  }
-
   private Component buildBubble(ChatMessage message) {
     Div bubble = new Div();
     bubble.getStyle()
@@ -338,10 +303,9 @@ public class Module01View
       author.getStyle().set("font-weight", "600");
       // Wrap in a single <div> so Vaadin's Html component sees a single root
       // element, as it requires.
-      String html = "<div class=\"md\">"
-          + MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(message.text()))
-          + "</div>";
-      Html content = new Html(html);
+      Component content = MarkdownSupport.htmlDiv(
+          MarkdownSupport.renderSafeHtml(message.text()));
+      content.getElement().getClassList().add("md");
       bubble.add(author, content);
     } else {
       // Plain-text path: preserve whitespace so participants can still read

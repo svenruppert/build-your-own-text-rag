@@ -25,7 +25,7 @@ public interface LlmClient {
      * Lists the model names known to the Ollama server.
      *
      * <p>Ollama responds with
-     * <pre>{@code { "models": [ { "name": "llama3.2" }, ... ] }}</pre>
+     * <pre>{@code { "models": [ { "name": "gemma4:e4b" }, ... ] }}</pre>
      *
      * @return the model names in declaration order, or {@link Optional#empty()}
      *         if the server cannot be reached or the payload cannot be parsed
@@ -39,7 +39,8 @@ public interface LlmClient {
      * Response payload:   {@code { "embeddings": [ [ ...floats... ] ] }}
      *
      * @param text  the input text, non-{@code null}
-     * @param model the embedding model name (for example {@code nomic-embed-text})
+     * @param model the embedding model name
+     *              (for example {@code nomic-embed-text-v2-moe})
      * @return the embedding vector, or {@link Optional#empty()} on failure
      */
     Optional<float[]> embed(String text, String model);

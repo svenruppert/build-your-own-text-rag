@@ -7,6 +7,7 @@ import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
@@ -44,6 +45,7 @@ import java.util.Map;
  * merely ships it to the DOM.
  */
 @Route(value = Module03View.PATH, layout = MainLayout.class)
+@CssImport("./styles/module03-view.css")
 public class Module03View
     extends VerticalLayout
     implements HasLogger {
@@ -166,57 +168,16 @@ public class Module03View
   // ---------- fixed layout blocks ------------------------------------
 
   private Component buildStyleBlock() {
-    // Inline CSS is kept visible on purpose -- participants should read
-    // it as workshop material. Palette colours are exposed as CSS
-    // variables so a trainer can tweak them without touching Java.
+    // Palette colours are exposed as CSS variables so a trainer can
+    // tweak them without touching Java. Static classes live in
+    // module03-view.css; only the dynamic :root block stays here.
     StringBuilder css = new StringBuilder();
-    css.append("<style>\n");
-    css.append(":root {\n");
+    css.append("<style>\n:root {\n");
     for (int i = 0; i < PALETTE.size(); i++) {
       css.append("  --chunk-colour-").append(i).append(": ")
           .append(PALETTE.get(i)).append(";\n");
     }
-    css.append("}\n");
-    // Both panels share the same monospace font family, size and line
-    // height so left and right read as one continuous typographic
-    // surface, with matching wrap behaviour.
-    css.append(".chunk-viz { font-family: ui-monospace, SFMono-Regular, monospace; "
-        + "font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; "
-        + "padding: 0.6em 0.75em; background: #fafafa; "
-        + "border: 1px solid #ddd; border-radius: 4px; "
-        + "width: 100%; height: 100%; box-sizing: border-box; "
-        + "overflow: auto; }\n");
-    // Wrapper around the Html component so it can participate in a
-    // flex row and share the visual footprint of the input TextArea.
-    css.append(".chunk-viz-wrapper { flex: 1; min-width: 0; display: flex; }\n");
-    css.append(".chunk-viz-wrapper > * { width: 100%; }\n");
-    // Restyle only the text-area that carries the `chunk-lab-doc`
-    // scope class; the slotted <textarea> is outside the component's
-    // shadow DOM and can be targeted from the document stylesheet.
-    css.append("vaadin-text-area.chunk-lab-doc textarea { "
-        + "font-family: ui-monospace, SFMono-Regular, monospace !important; "
-        + "font-size: 0.9rem !important; line-height: 1.6 !important; }\n");
-    // Identical caption styling for both panels so the controls below
-    // start at the same vertical position.
-    css.append(".panel-caption { font-size: 0.875rem; font-weight: 500; "
-        + "color: #555; margin-bottom: 0.3em; display: block; }\n");
-    css.append(".chunk-lab-panel { display: flex; flex-direction: column; "
-        + "flex: 1; min-width: 0; }\n");
-    css.append(".chunk-lab-panel > *:last-child { flex: 1; min-height: 0; }\n");
-    // Horizontal chip strip: one chip per chunk, scrolls horizontally
-    // so it stays compact even for a few hundred chunks.
-    css.append(".chunk-chip-track { display: flex; flex-wrap: nowrap; "
-        + "gap: 0.35em; overflow-x: auto; overflow-y: hidden; "
-        + "padding: 0.25em 0; flex: 1; min-width: 0; }\n");
-    css.append(".chunk-chip { flex-shrink: 0; min-width: 2.6em; "
-        + "padding: 0 0.7em; font-family: ui-monospace, SFMono-Regular, monospace; "
-        + "font-size: 0.8rem; border-radius: 999px; cursor: pointer; }\n");
-    css.append(".chunk-viz span { padding: 1px 0; border-radius: 2px; }\n");
-    css.append(".chunk-legend-entry { font-family: ui-monospace, SFMono-Regular, monospace; "
-        + "font-size: 0.85rem; }\n");
-    css.append(".chunk-swatch { display: inline-block; width: 0.9em; height: 0.9em; "
-        + "margin-right: 0.5em; border: 1px solid #666; vertical-align: middle; }\n");
-    css.append("</style>\n");
+    css.append("}\n</style>\n");
     return new Html(css.toString());
   }
 

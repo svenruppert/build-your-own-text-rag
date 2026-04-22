@@ -3,13 +3,16 @@ package com.svenruppert.flow.views.module06;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.views.help.ExpandableHelp;
+import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
+import com.svenruppert.flow.views.help.RetrievalSourcesPanel;
+import com.svenruppert.flow.views.help.ThinkingPanel;
+import com.svenruppert.flow.views.help.ThrottledUiBuffer;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
 import com.svenruppert.flow.views.module01.LlmConfig;
 import com.svenruppert.flow.views.module02.EclipseStoreJVectorStore;
 import com.svenruppert.flow.views.module03.SentenceChunker;
-import com.svenruppert.flow.views.module04.RetrievalHit;
 import com.svenruppert.flow.views.module05.GeneratedAnswer;
 import com.svenruppert.flow.views.module05.OllamaStreamingApi;
 import com.svenruppert.flow.views.module05.RagPipeline;
@@ -17,10 +20,8 @@ import com.svenruppert.flow.views.module05.SimpleGroundedPromptTemplate;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -35,19 +36,11 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.server.streams.UploadMetadata;
-import org.commonmark.Extension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Module 6 -- product framing of the RAG stack built in modules 1-5.
@@ -84,21 +77,6 @@ public class Module06View
     implements HasLogger {
 
   public static final String PATH = "Module06";
-
-  /**
-   * Shared Markdown pipeline -- same shape as Module 5 so a reader
-   * sees one rendering story across the workshop. GFM pipe tables
-   * enabled, raw HTML escaped, link URLs sanitised.
-   */
-  private static final Set<Extension> MARKDOWN_EXTENSIONS =
-      Set.of(TablesExtension.create());
-  private static final Parser MARKDOWN_PARSER = Parser.builder()
-      .extensions(MARKDOWN_EXTENSIONS).build();
-  private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder()
-      .extensions(MARKDOWN_EXTENSIONS)
-      .escapeHtml(true)
-      .sanitizeUrls(true)
-      .build();
 
   /**
    * On-disk location of the module-6 vector store. Per-module
@@ -140,7 +118,7 @@ public class Module06View
   private final TextField queryField = new TextField();
   private final Button askButton = new Button("Ask");
   private final Div answerDiv = new Div();
-  private final VerticalLayout sourcesPanel = new VerticalLayout();
+  private final RetrievalSourcesPanel sourcesPanel = new RetrievalSourcesPanel();
 
   // ------- step indicator + progress bar -----------------------------
 
@@ -166,8 +144,7 @@ public class Module06View
 
   // ------- thinking panel (side channel) -----------------------------
 
-  private final Div thinkingDiv = new Div();
-  private final Details thinkingDetails = new Details("Thinking", thinkingDiv);
+  private final ThinkingPanel thinkingPanel = new ThinkingPanel();
 
   public Module06View() {
     this(new DefaultLlmClient(LlmConfig.defaults()), LlmConfig.defaults());
@@ -181,7 +158,6 @@ public class Module06View
     setPadding(true);
     setSpacing(true);
 
-    add(buildStyleBlock());
     add(buildHeader());
     add(buildCorpusRow());
     add(buildDocumentChipRow());
@@ -229,148 +205,6 @@ public class Module06View
   }
 
   // ---------- layout -------------------------------------------------
-
-  private Component buildStyleBlock() {
-    String css = """
-            <style>
-              .answer-box { font-size: 0.95rem; line-height: 1.55;
-                            padding: 0.8em; background: #fafafa;
-                            border: 1px solid #ddd; border-radius: 4px;
-                            min-height: 12em; }
-              /* While streaming the answer is plain text; preserve
-                 new-lines with monospace + pre-wrap. finaliseAnswer
-                 drops this class and renders Markdown. */
-              .answer-box.streaming { font-family: ui-monospace, SFMono-Regular, monospace;
-                                      white-space: pre-wrap; }
-              .answer-box p:first-child { margin-top: 0; }
-              .answer-box p:last-child { margin-bottom: 0; }
-              .answer-box pre { background: #f3f3f3; padding: 0.6em 0.8em;
-                                border-radius: 4px; overflow-x: auto; }
-              .answer-box code { font-family: ui-monospace, SFMono-Regular, monospace; }
-              .answer-box table { border-collapse: collapse; margin: 0.6em 0; }
-              .answer-box th, .answer-box td { border: 1px solid #ccc;
-                                               padding: 0.3em 0.6em; }
-              .answer-box th { background: #eee; }
-              .source-item { border-left: 4px solid #2e7d32;
-                             padding: 0.4em 0.6em; margin-bottom: 0.4em;
-                             background: #f1f8f1;
-                             border-top: 1px solid #eee;
-                             border-right: 1px solid #eee;
-                             border-bottom: 1px solid #eee; }
-              .source-label { font-family: ui-monospace, SFMono-Regular, monospace;
-                              font-size: 0.75rem; color: #2e7d32;
-                              font-weight: 600; }
-              .source-preview { font-size: 0.85rem; color: #333; margin-top: 0.2em; }
-              .status-label { font-family: ui-monospace, SFMono-Regular, monospace;
-                              font-size: 0.85rem; color: #555; }
-              /* Finished state for the status label and the progress
-                 status: green + check so the "process is done" signal
-                 is unmistakable even on a laptop-speed run that just
-                 finished a long generation. */
-              .status-label.finished {
-                color: #1b5e20; font-weight: 600;
-              }
-              .status-label.finished::before { content: "\\2713\\00a0"; }
-              /* Document chip: pill per ingested source with a close (x)
-                 affordance. Clicking x removes that source from the
-                 store. */
-              .doc-chip {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                padding: 0.15em 0.2em 0.15em 0.7em;
-                border-radius: 999px;
-                background: #e3f2fd;
-                color: #0d47a1;
-                border: 1px solid #90caf9;
-                display: inline-flex; align-items: center; gap: 0.3em;
-              }
-              .doc-chip-close {
-                display: inline-flex; align-items: center;
-                justify-content: center;
-                width: 1.2em; height: 1.2em;
-                border-radius: 50%;
-                cursor: pointer;
-                color: #0d47a1;
-              }
-              .doc-chip-close:hover { background: #bbdefb; }
-              /* Model chip in the header: shows which embedder and which
-                 generation model the product is wired to. Neutral palette
-                 so it reads as metadata, not an actionable control. */
-              .model-chip {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.75rem;
-                padding: 0.15em 0.65em;
-                border-radius: 999px;
-                background: #f3f3f3;
-                color: #333;
-                border: 1px solid #ddd;
-              }
-              .doc-chip-empty {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem; color: #888; font-style: italic;
-              }
-              /* Step chips: pill per pipeline phase, with idle / active /
-                 done states. Active pulses so the user can see that
-                 something is happening even during the long generation
-                 step. */
-              .step-chip {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                padding: 0.2em 0.8em;
-                border-radius: 999px;
-                border: 1px solid transparent;
-                display: inline-flex; align-items: center; gap: 0.35em;
-              }
-              .step-chip.idle {
-                background: #eee; color: #888; border-color: #ddd;
-              }
-              .step-chip.active {
-                background: #e3f2fd; color: #0d47a1; border-color: #90caf9;
-                animation: m6-pulse 1.1s ease-in-out infinite;
-              }
-              .step-chip.done {
-                background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7;
-              }
-              .step-chip.done::before { content: "\\2713"; font-weight: 700; }
-              .step-chip.active::before { content: "\\2022"; font-weight: 700; }
-              .step-chip.idle::before { content: "\\25CB"; }
-              @keyframes m6-pulse {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(13,71,161,0.25); }
-                50%      { box-shadow: 0 0 0 6px rgba(13,71,161,0);    }
-              }
-              /* Thinking panel: muted palette, monospace, clearly
-                 separated from the primary answer. Same look as Module 5
-                 so readers recognise it across the workshop. */
-              .thinking-details { margin-bottom: 0.4em; }
-              .thinking-details::part(summary) {
-                color: #555; font-size: 0.85rem; font-style: italic;
-              }
-              .thinking-box {
-                font-size: 0.85rem; line-height: 1.55;
-                color: #555; background: #f5f2ea;
-                border: 1px dashed #d8cfb6;
-                border-radius: 4px;
-                padding: 0.6em 0.8em;
-                max-height: 20em; overflow-y: auto;
-              }
-              /* Streaming-phase look: monospace + pre-wrap so raw
-                 tokens land cleanly as they arrive. Dropped on
-                 finalise, when the whole thinking text is rendered as
-                 Markdown. */
-              .thinking-box.streaming {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                white-space: pre-wrap;
-              }
-              .thinking-box p:first-child { margin-top: 0; }
-              .thinking-box p:last-child { margin-bottom: 0; }
-              .thinking-box pre { background: #efeadf; padding: 0.5em 0.7em;
-                                  border-radius: 4px; overflow-x: auto; }
-              .thinking-box code { font-family: ui-monospace, SFMono-Regular, monospace; }
-            </style>
-            """;
-    return new Html(css);
-  }
 
   private Component buildHeader() {
     H3 title = new H3("Module 6 -- RAG Product");
@@ -492,20 +326,11 @@ public class Module06View
     answerDiv.addClassName("answer-box");
     answerDiv.setWidthFull();
 
-    thinkingDiv.addClassName("thinking-box");
-    thinkingDetails.addClassName("thinking-details");
-    thinkingDetails.setOpened(false);
-    thinkingDetails.setVisible(false);   // shown only when thinking content arrives
-
     VerticalLayout left = new VerticalLayout(
-        thinkingDetails, new Span("Answer"), answerDiv);
+        thinkingPanel.component(), new Span("Answer"), answerDiv);
     left.setPadding(false);
     left.setSpacing(false);
     left.getStyle().set("flex", "1").set("min-width", "0");
-
-    sourcesPanel.setPadding(false);
-    sourcesPanel.setSpacing(false);
-    sourcesPanel.getStyle().set("overflow-y", "auto");
 
     VerticalLayout right = new VerticalLayout(new Span("Sources"), sourcesPanel);
     right.setPadding(false);
@@ -670,12 +495,7 @@ public class Module06View
     // renders only once the full answer has landed.
     answerDiv.addClassName("streaming");
     sourcesPanel.removeAll();
-    thinkingDiv.removeAll();
-    thinkingDiv.setText("");
-    thinkingDiv.addClassName("streaming");
-    thinkingDetails.setSummaryText("Thinking");
-    thinkingDetails.setOpened(false);
-    thinkingDetails.setVisible(false);
+    thinkingPanel.resetForStreaming();
     askButton.setEnabled(false);
     statusLabel.setText("Answering...");
     statusLabel.removeClassName("finished");
@@ -690,46 +510,19 @@ public class Module06View
     progressRow.setVisible(true);
 
     UI ui = UI.getCurrent();
-    StringBuilder live = new StringBuilder();
-    StringBuilder liveThinking = new StringBuilder();
-    // Throttle: push answer tokens to the UI at most every 75 ms.
-    // The final render in finalise() always shows the complete text.
-    AtomicLong lastAnswerPush = new AtomicLong(0);
-    AtomicLong lastThinkingPush = new AtomicLong(0);
-    AtomicBoolean thinkingVisible = new AtomicBoolean(false);
+    ThrottledUiBuffer live =
+        new ThrottledUiBuffer(ui, 75, answerDiv::setText);
+    ThrottledUiBuffer liveThinking =
+        new ThrottledUiBuffer(ui, 75, thinkingPanel::showStreaming);
 
     Thread.ofVirtual().name("m6-ask-" + System.currentTimeMillis()).start(() -> {
       try {
         GeneratedAnswer answer = ragSystem.ask(query,
             token -> {
               live.append(token);
-              long now = System.currentTimeMillis();
-              if (now - lastAnswerPush.get() >= 75) {
-                lastAnswerPush.set(now);
-                String snapshot = live.toString();
-                ui.access(() -> answerDiv.setText(snapshot));
-              }
             },
             thinkingToken -> {
               liveThinking.append(thinkingToken);
-              long now = System.currentTimeMillis();
-              boolean firstToken = thinkingVisible.compareAndSet(false, true);
-              if (firstToken || now - lastThinkingPush.get() >= 75) {
-                lastThinkingPush.set(now);
-                String snapshot = liveThinking.toString();
-                int chars = snapshot.length();
-                ui.access(() -> {
-                  // First thinking token: reveal the panel so users
-                  // notice their model is emitting reasoning.
-                  if (firstToken) {
-                    thinkingDetails.setVisible(true);
-                    thinkingDetails.setOpened(true);
-                  }
-                  thinkingDiv.setText(snapshot);
-                  thinkingDetails.setSummaryText(
-                      "Thinking (" + chars + " chars)");
-                });
-              }
             },
             stage -> ui.access(() -> applyStage(stage)));
         ui.access(() -> finalise(answer));
@@ -815,13 +608,13 @@ public class Module06View
     // Swap the streaming plain-text view for the Markdown-rendered
     // HTML. commonmark escapes stray HTML for us; the renderer is
     // configured for GFM pipe tables and sanitised link URLs.
-    String html = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(answer.text()));
+    String html = MarkdownSupport.renderSafeHtml(answer.text());
     answerDiv.removeAll();
     answerDiv.setText("");
     answerDiv.removeClassName("streaming");
-    answerDiv.add(new Html("<div>" + html + "</div>"));
+    answerDiv.add(MarkdownSupport.htmlDiv(html));
 
-    renderSources(answer.usedHits());
+    sourcesPanel.renderProductSources(answer.usedHits());
     finaliseThinking(answer.thinking());
     // "Finished" is a distinct terminal state from a running "Done."
     // glimpse: green text + checkmark so the user sees unambiguously
@@ -836,47 +629,15 @@ public class Module06View
 
   private void finaliseThinking(String thinking) {
     if (thinking == null || thinking.isEmpty()) {
-      thinkingDetails.setVisible(false);
+      thinkingPanel.finalise(thinking, "");
       return;
     }
     // Swap the raw-token streaming view for the Markdown-rendered
     // HTML, the same treatment the answer box gets. commonmark escapes
     // stray HTML; renderer is configured for GFM tables and sanitised
     // links.
-    String html = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(thinking));
-    thinkingDiv.removeAll();
-    thinkingDiv.setText("");
-    thinkingDiv.removeClassName("streaming");
-    thinkingDiv.add(new Html("<div>" + html + "</div>"));
-    thinkingDetails.setSummaryText("Thinking (" + thinking.length() + " chars)");
-    thinkingDetails.setVisible(true);
-    // Collapse once the answer is available; the user can re-open to
-    // inspect the reasoning.
-    thinkingDetails.setOpened(false);
+    String html = MarkdownSupport.renderSafeHtml(thinking);
+    thinkingPanel.finalise(thinking, html);
   }
 
-  private void renderSources(List<RetrievalHit> hits) {
-    sourcesPanel.removeAll();
-    int number = 1;
-    for (RetrievalHit hit : hits) {
-      Div item = new Div();
-      item.addClassName("source-item");
-
-      Span label = new Span("[Chunk " + number + "]");
-      label.addClassName("source-label");
-
-      Div preview = new Div();
-      preview.addClassName("source-preview");
-      preview.setText(preview(hit.chunk().text(), 140));
-
-      item.add(label, preview);
-      sourcesPanel.add(item);
-      number++;
-    }
-  }
-
-  private static String preview(String text, int max) {
-    String flat = text.replace('\n', ' ').replace('\r', ' ').trim();
-    return flat.length() <= max ? flat : flat.substring(0, max) + "...";
-  }
 }

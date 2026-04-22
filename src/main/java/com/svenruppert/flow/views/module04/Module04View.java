@@ -2,6 +2,7 @@ package com.svenruppert.flow.views.module04;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
@@ -17,7 +18,6 @@ import com.svenruppert.flow.views.module03.SentenceChunker;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -72,7 +72,8 @@ public class Module04View
 
   public static final String PATH = "Module04";
 
-  private static final String EMBEDDING_MODEL = "nomic-embed-text";
+  private static final String EMBEDDING_MODEL =
+      WorkshopDefaults.DEFAULT_EMBEDDING_MODEL;
 
   private static final Map<String, String> SOURCE_COLOURS = Map.of(
       "vector", "#1976d2",
@@ -208,7 +209,6 @@ public class Module04View
     setPadding(true);
     setSpacing(true);
 
-    add(buildStyleBlock());
     add(buildHeader());
     add(buildIngestionZone());
     add(buildRetrievalControls());
@@ -312,58 +312,6 @@ public class Module04View
     row.setWidthFull();
     row.setFlexGrow(1, pendingChips);
     return row;
-  }
-
-  /**
-   * Inline style block: hides the Vaadin Upload component's internal
-   * file list (we show our own chips) and compacts a few pieces of its
-   * chrome. Kept inside the view so a trainer can tweak the palette on
-   * a slide without touching any CSS files.
-   */
-  private Component buildStyleBlock() {
-    return new Html("""
-            <style>
-              vaadin-upload.compact-upload vaadin-upload-file { display: none !important; }
-              vaadin-upload.compact-upload [part="drop-label-icon"] { display: none !important; }
-              vaadin-upload.compact-upload { min-width: 12em; }
-              .pending-chip {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                padding: 0.15em 0.7em;
-                border-radius: 999px;
-                background: #eef;
-                color: #225;
-                border: 1px solid #cce;
-                white-space: nowrap;
-                flex-shrink: 0;
-              }
-              .pending-chip-empty {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                color: #888;
-                font-style: italic;
-              }
-              /* Judge-thinking panel: muted palette, monospace, clearly
-                 distinct from the main score grid. */
-              .judge-thinking-panel { margin-top: 0.5em; }
-              .judge-thinking-panel::part(summary) {
-                color: #555; font-size: 0.85rem; font-style: italic;
-              }
-              .judge-thinking-entry {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem; line-height: 1.45;
-                color: #555; background: #f5f2ea;
-                border: 1px dashed #d8cfb6; border-radius: 4px;
-                padding: 0.5em 0.7em; margin-bottom: 0.4em;
-                white-space: pre-wrap;
-              }
-              .judge-thinking-entry .heading {
-                font-weight: 600; color: #2a2a2a;
-                font-style: normal; margin-bottom: 0.2em;
-                display: block;
-              }
-            </style>
-            """);
   }
 
   /**
@@ -792,12 +740,11 @@ public class Module04View
   // ---------- population --------------------------------------------
 
   private void populateModelLists() {
-    List<String> models = llmClient.listModels().orElse(List.of("llama3.2"));
+    List<String> models = llmClient.listModels()
+        .orElse(List.of(LlmJudgeReranker.DEFAULT_MODEL));
+    if (models.isEmpty()) models = List.of(LlmJudgeReranker.DEFAULT_MODEL);
     llmJudgeModel.setItems(models);
-    llmJudgeModel.setValue(models.stream()
-        .filter(n -> n.contains("llama") || n.contains("qwen"))
-        .findFirst()
-        .orElse(LlmJudgeReranker.DEFAULT_MODEL));
+    llmJudgeModel.setValue(WorkshopDefaults.preferredGenerationModel(models));
   }
 
   // ---------- helpers -----------------------------------------------

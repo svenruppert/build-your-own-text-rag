@@ -2,9 +2,14 @@ package com.svenruppert.flow.views.module05;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.HelpEntry;
+import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
+import com.svenruppert.flow.views.help.RetrievalSourcesPanel;
+import com.svenruppert.flow.views.help.ThinkingPanel;
+import com.svenruppert.flow.views.help.ThrottledUiBuffer;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
 import com.svenruppert.flow.views.module01.LlmConfig;
@@ -24,13 +29,11 @@ import com.svenruppert.flow.views.module04.VectorRetriever;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.JsModule;
-import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -46,10 +49,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
-import org.commonmark.Extension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,8 +63,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 /**
@@ -92,20 +89,10 @@ public class Module05View
 
   public static final String PATH = "Module05";
 
-  private static final String EMBEDDING_MODEL = "nomic-embed-text";
-  private static final String DEFAULT_GENERATION_MODEL = "llama3.2";
-
-  // Shared Markdown pipeline -- same configuration as Module 1: GFM
-  // pipe tables enabled, raw HTML escaped, link URLs sanitised.
-  private static final Set<Extension> MARKDOWN_EXTENSIONS =
-      Set.of(TablesExtension.create());
-  private static final Parser MARKDOWN_PARSER = Parser.builder()
-      .extensions(MARKDOWN_EXTENSIONS).build();
-  private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder()
-      .extensions(MARKDOWN_EXTENSIONS)
-      .escapeHtml(true)
-      .sanitizeUrls(true)
-      .build();
+  private static final String EMBEDDING_MODEL =
+      WorkshopDefaults.DEFAULT_EMBEDDING_MODEL;
+  private static final String DEFAULT_GENERATION_MODEL =
+      WorkshopDefaults.DEFAULT_GENERATION_MODEL;
 
   enum RetrieverChoice {
     VECTOR("Vector"), BM25("BM25"), HYBRID("Hybrid (RRF)");
@@ -183,12 +170,11 @@ public class Module05View
 
   // ------- thinking panel (side channel) ------------------------------
 
-  private final Div thinkingDiv = new Div();
-  private final Details thinkingDetails = new Details("Thinking", thinkingDiv);
+  private final ThinkingPanel thinkingPanel = new ThinkingPanel();
 
   // ------- sources panel ---------------------------------------------
 
-  private final VerticalLayout sourcesPanel = new VerticalLayout();
+  private final RetrievalSourcesPanel sourcesPanel = new RetrievalSourcesPanel();
 
   // ------- options ---------------------------------------------------
 
@@ -207,7 +193,6 @@ public class Module05View
     setPadding(true);
     setSpacing(true);
 
-    add(buildStyleBlock());
     add(buildHeader());
     add(buildIngestionRow());
     add(buildAskRow());
@@ -258,105 +243,6 @@ public class Module05View
   }
 
   // ---------- layout --------------------------------------------------
-
-  private Component buildStyleBlock() {
-    String css = """
-            <style>
-              .chunk-ref { background: #fff3b0; padding: 0 0.2em;
-                           border-radius: 3px; }
-              .answer-box { font-size: 0.95rem; line-height: 1.55;
-                            padding: 0.8em; background: #fafafa;
-                            border: 1px solid #ddd; border-radius: 4px;
-                            min-height: 12em; }
-              /* While streaming the answer is plain text; preserve the
-                 new-lines the model emits. */
-              .answer-box.streaming { font-family: ui-monospace, SFMono-Regular, monospace;
-                                      white-space: pre-wrap; }
-              /* Once Markdown rendering has run, block-level elements
-                 handle their own spacing, so we drop pre-wrap. */
-              .answer-box p:first-child { margin-top: 0; }
-              .answer-box p:last-child { margin-bottom: 0; }
-              .answer-box pre { background: #f3f3f3; padding: 0.6em 0.8em;
-                                border-radius: 4px; overflow-x: auto; }
-              .answer-box code { font-family: ui-monospace, SFMono-Regular, monospace; }
-              .answer-box table { border-collapse: collapse; margin: 0.6em 0; }
-              .answer-box th, .answer-box td { border: 1px solid #ccc;
-                                               padding: 0.3em 0.6em; }
-              .answer-box th { background: #eee; }
-              .source-item { border-left: 4px solid #ddd; padding: 0.4em 0.6em;
-                             margin-bottom: 0.4em; background: #fff;
-                             border-top: 1px solid #eee;
-                             border-right: 1px solid #eee;
-                             border-bottom: 1px solid #eee; }
-              .source-item.cited { border-left-color: #2e7d32; background: #f1f8f1; }
-              .source-label { font-family: ui-monospace, SFMono-Regular, monospace;
-                              font-size: 0.75rem; color: #2e7d32;
-                              font-weight: 600; }
-              .source-preview { font-size: 0.85rem; color: #333; margin-top: 0.2em; }
-              .source-path { font-size: 0.75rem; color: #666; margin-top: 0.2em; }
-              .badge { display: inline-block; padding: 0.1em 0.6em;
-                       border-radius: 999px; font-size: 0.75rem;
-                       font-family: ui-monospace, SFMono-Regular, monospace;
-                       color: white; margin-left: 0.4em; }
-              .badge-refusal { background: #c62828; }
-              .badge-grounded { background: #2e7d32; }
-              .badge-partial  { background: #f9a825; }
-              .badge-not-grounded { background: #c62828; }
-              .badge-unknown  { background: #757575; }
-              /* Thinking panel: muted palette, monospace, clearly
-                 separated from the primary answer. */
-              .thinking-details { margin-bottom: 0.4em; }
-              .thinking-details::part(summary) {
-                color: #555; font-size: 0.85rem; font-style: italic;
-              }
-              .thinking-box {
-                font-size: 0.85rem; line-height: 1.55;
-                color: #555; background: #f5f2ea;
-                border: 1px dashed #d8cfb6;
-                border-radius: 4px;
-                padding: 0.6em 0.8em;
-                max-height: 20em; overflow-y: auto;
-              }
-              /* Streaming-phase look: monospace + pre-wrap so raw tokens
-                 land cleanly as they arrive. Dropped on finalise, when
-                 the whole thinking text is rendered as Markdown. */
-              .thinking-box.streaming {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                white-space: pre-wrap;
-              }
-              .thinking-box p:first-child { margin-top: 0; }
-              .thinking-box p:last-child { margin-bottom: 0; }
-              .thinking-box pre { background: #efeadf; padding: 0.5em 0.7em;
-                                  border-radius: 4px; overflow-x: auto; }
-              .thinking-box code { font-family: ui-monospace, SFMono-Regular, monospace; }
-              /* Compact Upload: hide the built-in file list and icon;
-                 we render our own chip strip beside it. Matches the
-                 Module 4 Retrieval Lab. */
-              vaadin-upload.compact-upload vaadin-upload-file { display: none !important; }
-              vaadin-upload.compact-upload [part="drop-label-icon"] { display: none !important; }
-              vaadin-upload.compact-upload { min-width: 12em; }
-              .pending-chip {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                padding: 0.15em 0.7em;
-                border-radius: 999px;
-                background: #eef;
-                color: #225;
-                border: 1px solid #cce;
-                white-space: nowrap;
-                flex-shrink: 0;
-              }
-              .pending-chip-empty {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                color: #888;
-                font-style: italic;
-              }
-            </style>
-            """;
-    return new Html(css);
-  }
 
   private Component buildHeader() {
     H3 title = new H3("Module 5 -- Ask Lab");
@@ -506,20 +392,11 @@ public class Module05View
     answerDiv.addClassName("answer-box");
     answerDiv.setWidthFull();
 
-    thinkingDiv.addClassName("thinking-box");
-    thinkingDetails.addClassName("thinking-details");
-    thinkingDetails.setOpened(false);
-    thinkingDetails.setVisible(false);   // only shown when thinking content arrives
-
     VerticalLayout left = new VerticalLayout(
-        thinkingDetails, new Span("Answer"), answerDiv);
+        thinkingPanel.component(), new Span("Answer"), answerDiv);
     left.setPadding(false);
     left.setSpacing(false);
     left.getStyle().set("flex", "1").set("min-width", "0");
-
-    sourcesPanel.setPadding(false);
-    sourcesPanel.setSpacing(false);
-    sourcesPanel.getStyle().set("overflow-y", "auto");
 
     VerticalLayout right = new VerticalLayout(new Span("Sources"), sourcesPanel);
     right.setPadding(false);
@@ -615,12 +492,7 @@ public class Module05View
     answerDiv.removeAll();
     answerDiv.setText("");
     answerDiv.addClassName("streaming");
-    thinkingDiv.removeAll();
-    thinkingDiv.setText("");
-    thinkingDiv.addClassName("streaming");
-    thinkingDetails.setSummaryText("Thinking");
-    thinkingDetails.setOpened(false);
-    thinkingDetails.setVisible(false);
+    thinkingPanel.resetForStreaming();
     sourcesPanel.removeAll();
     refusalBadge.setVisible(false);
     groundingBadge.setVisible(false);
@@ -646,46 +518,19 @@ public class Module05View
     RagPipeline rag = new RagPipeline(retriever, generator, checker);
 
     UI ui = UI.getCurrent();
-    StringBuilder liveAnswer = new StringBuilder();
-    StringBuilder liveThinking = new StringBuilder();
-    // Throttle: push answer tokens to the UI at most every 75 ms.
-    // The final render in finaliseAnswer always shows the complete text.
-    AtomicLong lastAnswerPush = new AtomicLong(0);
-    AtomicLong lastThinkingPush = new AtomicLong(0);
-    AtomicBoolean thinkingVisible = new AtomicBoolean(false);
+    ThrottledUiBuffer liveAnswer =
+        new ThrottledUiBuffer(ui, 75, answerDiv::setText);
+    ThrottledUiBuffer liveThinking =
+        new ThrottledUiBuffer(ui, 75, thinkingPanel::showStreaming);
 
     Thread.ofVirtual().name("m5-ask-" + System.currentTimeMillis()).start(() -> {
       try {
         GeneratedAnswer answer = rag.ask(query, retrievalK, model,
             token -> {
               liveAnswer.append(token);
-              long now = System.currentTimeMillis();
-              if (now - lastAnswerPush.get() >= 75) {
-                lastAnswerPush.set(now);
-                String snapshot = liveAnswer.toString();
-                ui.access(() -> answerDiv.setText(snapshot));
-              }
             },
             thinkingToken -> {
               liveThinking.append(thinkingToken);
-              long now = System.currentTimeMillis();
-              boolean firstToken = thinkingVisible.compareAndSet(false, true);
-              if (firstToken || now - lastThinkingPush.get() >= 75) {
-                lastThinkingPush.set(now);
-                String snapshot = liveThinking.toString();
-                int chars = snapshot.length();
-                ui.access(() -> {
-                  // First thinking token: reveal the Details panel so
-                  // participants notice their model is reasoning.
-                  if (firstToken) {
-                    thinkingDetails.setVisible(true);
-                    thinkingDetails.setOpened(true);
-                  }
-                  thinkingDiv.setText(snapshot);
-                  thinkingDetails.setSummaryText(
-                      "Thinking (" + chars + " chars)");
-                });
-              }
             },
             stage -> ui.access(() -> applyStage(stage, groundingEnabled)));
         ui.access(() -> finaliseAnswer(answer));
@@ -756,21 +601,21 @@ public class Module05View
     //      so the inline citation and the sources panel share a visual.
     //   3. Ask highlight.js to colourise any fenced <pre><code>.
     Set<Integer> cited = new HashSet<>(answer.citedChunkIndices());
-    String html = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(answer.text()));
+    String html = MarkdownSupport.renderSafeHtml(answer.text());
     String withCitations = AttributionParser.highlight(html, cited);
 
     answerDiv.removeAll();
     answerDiv.setText("");
     answerDiv.removeClassName("streaming");
-    answerDiv.add(new Html("<div>" + withCitations + "</div>"));
-    highlightCodeBlocks();
+    answerDiv.add(MarkdownSupport.htmlDiv(withCitations));
+    MarkdownSupport.highlightCodeBlocks(answerDiv);
 
     latencyLabel.setText(String.format(Locale.ROOT, "%.2f s",
         answer.latencyMillis() / 1000.0));
 
     refusalBadge.setVisible(answer.refusalDetected());
     renderGroundingBadge(answer.groundingCheck());
-    renderSources(answer.usedHits(), cited);
+    sourcesPanel.renderWithCitations(answer.usedHits(), cited, this::chunkIdFor);
     finaliseThinking(answer.thinking());
     askButton.setEnabled(true);
   }
@@ -782,43 +627,14 @@ public class Module05View
    */
   private void finaliseThinking(String thinking) {
     if (thinking == null || thinking.isEmpty()) {
-      thinkingDetails.setVisible(false);
+      thinkingPanel.finalise(thinking, "");
       return;
     }
     // Swap the raw-token streaming view for the Markdown-rendered HTML,
     // the same treatment the answer box gets. commonmark escapes stray
     // HTML; renderer is configured for GFM tables and sanitised links.
-    String html = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(thinking));
-    thinkingDiv.removeAll();
-    thinkingDiv.setText("");
-    thinkingDiv.removeClassName("streaming");
-    thinkingDiv.add(new Html("<div>" + html + "</div>"));
-    thinkingDetails.setSummaryText("Thinking (" + thinking.length() + " chars)");
-    thinkingDetails.setVisible(true);
-    // Collapse once the user has the real answer in front of them; they
-    // can re-open it to inspect the reasoning.
-    thinkingDetails.setOpened(false);
-  }
-
-  /**
-   * Runs highlight.js against every fenced {@code <pre><code>} inside
-   * the answer Div. Mirrors the Module 1 helper: if the loader has not
-   * attached {@code window.hljs} yet, the retry loop waits and tries
-   * again, so the timing between AppShell module loading and the
-   * first Ask never matters.
-   */
-  private void highlightCodeBlocks() {
-    answerDiv.getElement().executeJs(
-        "const host = this;"
-            + "function run() {"
-            + "  if (window.hljs) {"
-            + "    host.querySelectorAll('pre code').forEach("
-            + "      c => window.hljs.highlightElement(c));"
-            + "  } else {"
-            + "    setTimeout(run, 50);"
-            + "  }"
-            + "}"
-            + "run();");
+    String html = MarkdownSupport.renderSafeHtml(thinking);
+    thinkingPanel.finalise(thinking, html);
   }
 
   private void renderGroundingBadge(Optional<GroundingResult> maybeCheck) {
@@ -842,49 +658,13 @@ public class Module05View
     groundingBadge.setVisible(true);
   }
 
-  private void renderSources(List<RetrievalHit> hits, Set<Integer> citedIndices) {
-    sourcesPanel.removeAll();
-    int number = 1;
-    for (RetrievalHit hit : hits) {
-      int zeroBased = number - 1;
-      boolean cited = citedIndices.contains(zeroBased);
-
-      Div item = new Div();
-      item.addClassName("source-item");
-      if (cited) item.addClassName("cited");
-
-      Span label = new Span("[Chunk " + number + "]   " + chunkIdFor(hit));
-      label.addClassName("source-label");
-
-      Div preview = new Div();
-      preview.addClassName("source-preview");
-      preview.setText(preview(hit.chunk().text(), 120));
-
-      item.add(label, preview);
-      Object headingPath = hit.chunk().metadata().get(
-          com.svenruppert.flow.views.module03.Chunk.HEADING_PATH);
-      if (headingPath != null && !headingPath.toString().isEmpty()) {
-        Div path = new Div();
-        path.addClassName("source-path");
-        path.setText(headingPath.toString());
-        item.add(path);
-      }
-      sourcesPanel.add(item);
-      number++;
-    }
-  }
-
   // ---------- helpers -----------------------------------------------
 
   private void populateModelList() {
     List<String> names = llmClient.listModels().orElse(List.of(DEFAULT_GENERATION_MODEL));
     if (names.isEmpty()) names = List.of(DEFAULT_GENERATION_MODEL);
     modelSelector.setItems(names);
-    String preferred = names.stream()
-        .filter(n -> n.contains("llama") || n.contains("qwen"))
-        .findFirst()
-        .orElse(names.get(0));
-    modelSelector.setValue(preferred);
+    modelSelector.setValue(WorkshopDefaults.preferredGenerationModel(names));
   }
 
   private static IntegerField sizeField(String label, int defaultValue) {
@@ -906,11 +686,6 @@ public class Module05View
         .map(Map.Entry::getKey)
         .findFirst()
         .orElse("(unknown)");
-  }
-
-  private static String preview(String text, int max) {
-    String flat = text.replace('\n', ' ').replace('\r', ' ').trim();
-    return flat.length() <= max ? flat : flat.substring(0, max) + "...";
   }
 
   private void deleteRecursively(Path root) {

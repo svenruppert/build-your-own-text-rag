@@ -1,0 +1,5 @@
+Hello, world. This is a plain-text fixture.
+
+It spans two paragraphs. It is intentionally short so tests can
+assert on the exact content and on UTF-8 decoding: café, naïve,
+résumé.

@@ -2,6 +2,7 @@ package com.svenruppert.flow.views.main;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.glossary.GlossaryView;
 import com.svenruppert.flow.views.module01.LlmConfig;
 import com.svenruppert.flow.views.module01.Module01View;
@@ -12,7 +13,6 @@ import com.svenruppert.flow.views.module05.Module05View;
 import com.svenruppert.flow.views.module06.Module06View;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -23,7 +23,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -34,6 +33,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.component.dependency.CssImport;
 
 import java.util.List;
 import java.util.Map;
@@ -59,36 +59,21 @@ import java.util.Optional;
  * up. Every UI mutation goes through {@link UI#access}.
  */
 @Route(value = MainView.PATH, layout = MainLayout.class)
+@CssImport("./styles/dashboard.css")
 public class MainView
     extends VerticalLayout
     implements HasLogger {
 
   public static final String PATH = "";
 
-  private static final String SVG_PATH = "images/rag-big-picture.svg";
-
-  // Accent palette aligned with the big-picture SVG's zones.
+  // Accent palette aligned with the big-picture diagram's zones.
   private static final String ACCENT_NEUTRAL = "#64748B";
   private static final String ACCENT_INDEXING = "#0B72E7";
   private static final String ACCENT_QUERY = "#EA580C";
   private static final String ACCENT_PRODUCT = "#7C3AED";
 
-  private static final List<String> REQUIRED_MODELS = List.of(
-      "gemma4:e4b",
-      "nomic-embed-text-v2-moe",
-      "bge-m3",
-      "gemma4:31b");
-
-  private static final List<String> OPTIONAL_MODELS = List.of(
-      "embeddinggemma",
-      "gemma3",
-      "ministral-3",
-      "qwen3:14b",
-      "deepseek-r1",
-      "llama3.2",
-      "gemma",
-      "qwen3",
-      "nomic-embed-text");
+  private static final List<String> REQUIRED_MODELS = WorkshopDefaults.REQUIRED_MODELS;
+  private static final List<String> OPTIONAL_MODELS = WorkshopDefaults.OPTIONAL_MODELS;
 
   private final LlmConfig llmConfig = LlmConfig.defaults();
   private final OllamaProbe probe = new OllamaProbe(llmConfig.baseUrl());
@@ -104,10 +89,9 @@ public class MainView
     setSpacing(false);
     getStyle().set("background", "var(--lumo-base-color)");
 
-    add(buildStyleBlock());
     add(buildHero());
     add(buildDivider());
-    add(buildBigPicture());
+    add(new RagBigPicture());
     add(buildDivider());
     add(buildModuleGrid());
     add(buildDivider());
@@ -123,146 +107,6 @@ public class MainView
   protected void onAttach(AttachEvent event) {
     super.onAttach(event);
     runDiagnostics();
-  }
-
-  // ---------- styles -------------------------------------------------
-
-  private Component buildStyleBlock() {
-    // All zone-specific CSS lives here so the view is self-contained.
-    return new Html("""
-            <style>
-              .dashboard-zone {
-                padding: var(--lumo-space-l) var(--lumo-space-xl);
-                max-width: 1280px;
-                width: 100%;
-                margin: 0 auto;
-                box-sizing: border-box;
-              }
-              .dashboard-divider {
-                max-width: 1280px;
-                width: 100%;
-                margin: 0 auto;
-                border-top: 1px solid var(--lumo-contrast-10pct);
-              }
-              .dashboard-hero {
-                background: linear-gradient(135deg,
-                    var(--lumo-primary-color-10pct) 0%,
-                    transparent 60%);
-                padding-top: 40px;
-                padding-bottom: 24px;
-              }
-              .dashboard-hero h1 {
-                margin: 0 0 0.35em 0;
-                font-size: 2.25rem;
-                font-weight: 700;
-                color: var(--lumo-primary-text-color);
-                letter-spacing: -0.01em;
-              }
-              .dashboard-hero p {
-                margin: 0;
-                max-width: 640px;
-                font-size: 1.1rem;
-                line-height: 1.5;
-                color: var(--lumo-secondary-text-color);
-              }
-              .dashboard-bigpicture-wrap {
-                border: 1px solid var(--lumo-contrast-10pct);
-                border-radius: 12px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-                padding: var(--lumo-space-l);
-                background: var(--lumo-base-color);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-              }
-              .dashboard-bigpicture-wrap img,
-              .dashboard-bigpicture-wrap object {
-                width: 100%;
-                max-width: 1200px;
-                height: auto;
-              }
-              .dashboard-bigpicture-caption {
-                margin-top: var(--lumo-space-s);
-                font-size: 0.9em;
-                color: var(--lumo-secondary-text-color);
-              }
-              .dashboard-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                gap: var(--lumo-space-l);
-              }
-              .dashboard-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-                border-left-width: 4px !important;
-              }
-              .dashboard-card:focus-visible {
-                outline: 2px solid var(--lumo-primary-color);
-                outline-offset: 2px;
-              }
-              .dashboard-zone h2 {
-                margin: 0 0 var(--lumo-space-m) 0;
-                font-size: 1.5rem;
-                font-weight: 600;
-                color: var(--lumo-primary-text-color);
-              }
-              .dashboard-system-row {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: var(--lumo-space-l);
-              }
-              @media (max-width: 700px) {
-                .dashboard-system-row { grid-template-columns: 1fr; }
-              }
-              .dashboard-panel {
-                border: 1px solid var(--lumo-contrast-10pct);
-                border-radius: 12px;
-                padding: var(--lumo-space-l);
-                background: var(--lumo-base-color);
-              }
-              .dashboard-panel h3 {
-                margin: 0 0 var(--lumo-space-s) 0;
-                font-size: 1.05rem;
-                font-weight: 600;
-              }
-              .dashboard-muted {
-                color: var(--lumo-secondary-text-color);
-                font-size: 0.9rem;
-              }
-              .dashboard-digest {
-                font-family: ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.75rem;
-                color: var(--lumo-tertiary-text-color);
-              }
-              .dashboard-model-row {
-                display: flex;
-                align-items: center;
-                gap: var(--lumo-space-s);
-                padding: 0.35em 0.5em;
-                border-radius: 6px;
-              }
-              .dashboard-model-missing-required {
-                background: var(--lumo-error-color-10pct);
-              }
-              .dashboard-resources-row {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: var(--lumo-space-l);
-              }
-              @media (max-width: 700px) {
-                .dashboard-resources-row { grid-template-columns: 1fr; }
-              }
-              .dashboard-link {
-                color: var(--lumo-secondary-text-color);
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 0.35em;
-                padding: 0.2em 0;
-              }
-              .dashboard-link:hover { text-decoration: underline; }
-            </style>
-            """);
   }
 
   private Component buildDivider() {
@@ -285,29 +129,6 @@ public class MainView
             + "jump in.");
     wrap.add(heading, sub);
     return wrap;
-  }
-
-  // ---------- zone 2: big picture ------------------------------------
-
-  private Component buildBigPicture() {
-    Div zone = new Div();
-    zone.addClassName("dashboard-zone");
-
-    Div wrap = new Div();
-    wrap.addClassName("dashboard-bigpicture-wrap");
-
-    Image svg = new Image(SVG_PATH, "RAG architecture");
-    // Safe sizing even before the SVG is present: no crashing border.
-    svg.getStyle().set("display", "block");
-    wrap.add(svg);
-
-    Span caption = new Span(
-        "The RAG architecture. Below: the six modules you build it with.");
-    caption.addClassName("dashboard-bigpicture-caption");
-    wrap.add(caption);
-
-    zone.add(wrap);
-    return zone;
   }
 
   // ---------- zone 3: module grid ------------------------------------

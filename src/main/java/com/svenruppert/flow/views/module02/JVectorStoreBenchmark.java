@@ -45,7 +45,7 @@ import java.util.stream.Stream;
  */
 public final class JVectorStoreBenchmark implements HasLogger {
 
-    private static final int DEFAULT_DIMENSION = 768;     // nomic-embed-text
+    private static final int DEFAULT_DIMENSION = 768;     // common embedding size
     private static final long DEFAULT_SEED = 42L;
 
     private JVectorStoreBenchmark() {

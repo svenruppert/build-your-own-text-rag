@@ -1,0 +1,52 @@
+[
+  {
+    "id": "v-cluster-a-0",
+    "vector": [1.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "cluster A, near e_0, anchor"
+  },
+  {
+    "id": "v-cluster-a-1",
+    "vector": [0.95, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "cluster A, near e_0"
+  },
+  {
+    "id": "v-cluster-a-2",
+    "vector": [0.9, 0.15, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "cluster A, near e_0, softened"
+  },
+  {
+    "id": "v-cluster-b-0",
+    "vector": [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "cluster B, pure e_1"
+  },
+  {
+    "id": "v-cluster-b-1",
+    "vector": [0.0, 0.95, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "cluster B, near e_1"
+  },
+  {
+    "id": "v-cluster-c-0",
+    "vector": [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+    "payload": "cluster C, pure e_4"
+  },
+  {
+    "id": "v-cluster-c-1",
+    "vector": [0.0, 0.0, 0.0, 0.0, 0.95, 0.1, 0.0, 0.0],
+    "payload": "cluster C, near e_4"
+  },
+  {
+    "id": "v-orthogonal",
+    "vector": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    "payload": "orthogonal to every other non-noise vector"
+  },
+  {
+    "id": "v-mixed-a-b",
+    "vector": [0.7, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "payload": "midpoint between clusters A and B"
+  },
+  {
+    "id": "v-noise",
+    "vector": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+    "payload": "uniform low-magnitude noise"
+  }
+]

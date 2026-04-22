@@ -32,7 +32,7 @@ public final class ParameterDocs {
           against this model; swapping it is the single biggest lever on
           quality, latency and VRAM use.</p>
           <p><strong>Values.</strong> Whatever <code>ollama list</code>
-          reports. Default falls back to <code>llama3.2</code> if the
+          reports. Default falls back to <code>gemma4:e4b</code> if the
           list call fails.</p>
           <p><strong>Hint.</strong> Small instruct models (3-8B) are
           fast and adequate for short chat; larger or reasoning models
@@ -81,13 +81,12 @@ public final class ParameterDocs {
           model; changing this after adding entries makes the corpus
           inconsistent.</p>
           <p><strong>Values.</strong> Any embedding-capable model
-          returned by Ollama. Defaults to <code>nomic-embed-text</code>
+          returned by Ollama. Defaults to <code>nomic-embed-text-v2-moe</code>
           when available.</p>
-          <p><strong>Hint.</strong> <code>nomic-embed-text</code> (768
-          dims) is a strong default for English. <code>mxbai-embed-large</code>
-          (1024 dims) gives slightly better retrieval at more memory
-          cost. Clear the store before switching, or added and query
-          vectors will no longer compare meaningfully.</p>
+          <p><strong>Hint.</strong> The embedding dimension is fixed by
+          the selected model and can differ between model families.
+          Clear the store before switching, or added and query vectors
+          will no longer compare meaningfully.</p>
           """);
 
   public static final HelpEntry M2_DIMENSIONS = new HelpEntry(
@@ -96,9 +95,8 @@ public final class ParameterDocs {
           <p><strong>Purpose.</strong> The length of each embedding
           vector, fixed by the embedding model. Shown for context --
           it is not user-editable.</p>
-          <p><strong>Values.</strong> Typically 384, 768 or 1024.
-          <code>nomic-embed-text</code> emits 768, <code>mxbai-embed-large</code>
-          emits 1024.</p>
+          <p><strong>Values.</strong> Typically 384, 768 or 1024,
+          depending on the selected embedding model.</p>
           <p><strong>Hint.</strong> Higher dimensions mean more
           expressive vectors but also more memory and slower search.
           The stored corpus's dimensionality is locked the first time
@@ -427,8 +425,10 @@ public final class ParameterDocs {
           grounded answer from the retrieved chunks.</p>
           <p><strong>Values.</strong> Any chat-capable model pulled
           into Ollama; the list is fetched from
-          <code>/api/tags</code>. Default prefers <code>llama</code>
-          or <code>qwen</code> family models.</p>
+          <code>/api/tags</code>. Default prefers
+          <code>gemma4:e4b</code> when available, then other
+          <code>gemma</code>, <code>llama</code> or <code>qwen</code>
+          family models.</p>
           <p><strong>Hint.</strong> Small instruct models answer
           quickly and stay on-context if the prompt is tight. Reasoning
           models emit thinking tokens into the side panel and produce

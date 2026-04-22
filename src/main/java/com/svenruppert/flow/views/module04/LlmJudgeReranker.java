@@ -1,6 +1,7 @@
 package com.svenruppert.flow.views.module04;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.module01.LlmClient;
 import com.svenruppert.flow.views.module01.ThinkingReply;
 
@@ -41,7 +42,7 @@ import java.util.regex.Pattern;
 public final class LlmJudgeReranker implements Reranker, HasLogger {
 
     /** Default judge model; any instruction-tuned model will do. */
-    public static final String DEFAULT_MODEL = "llama3.2";
+    public static final String DEFAULT_MODEL = WorkshopDefaults.DEFAULT_GENERATION_MODEL;
 
     /**
      * Matches the first integer or decimal number in the LLM reply.

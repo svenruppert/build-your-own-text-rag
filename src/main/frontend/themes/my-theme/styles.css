@@ -16,4 +16,330 @@ vaadin-text-field.bordered::part(input-field) {
   background-color: var(--lumo-base-color);
 }
 
+/* Workshop upload and chip helpers shared by the module views. */
+vaadin-upload.compact-upload vaadin-upload-file {
+  display: none !important;
+}
 
+vaadin-upload.compact-upload [part="drop-label-icon"] {
+  display: none !important;
+}
+
+vaadin-upload.compact-upload {
+  min-width: 12em;
+}
+
+.pending-chip,
+.doc-chip,
+.model-chip,
+.step-chip,
+.source-label,
+.badge,
+.status-label,
+.pending-chip-empty,
+.doc-chip-empty,
+.judge-thinking-entry,
+.thinking-box.streaming,
+.answer-box.streaming {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.pending-chip {
+  font-size: 0.8rem;
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+  background: #eef;
+  color: #225;
+  border: 1px solid #cce;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pending-chip-empty,
+.doc-chip-empty {
+  font-size: 0.8rem;
+  color: #888;
+  font-style: italic;
+}
+
+/* Shared answer and source rendering for the RAG modules. */
+.chunk-ref {
+  background: #fff3b0;
+  padding: 0 0.2em;
+  border-radius: 3px;
+}
+
+.answer-box {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  padding: 0.8em;
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 12em;
+}
+
+.answer-box.streaming {
+  white-space: pre-wrap;
+}
+
+.answer-box p:first-child,
+.thinking-box p:first-child {
+  margin-top: 0;
+}
+
+.answer-box p:last-child,
+.thinking-box p:last-child {
+  margin-bottom: 0;
+}
+
+.answer-box pre {
+  background: #f3f3f3;
+  padding: 0.6em 0.8em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.answer-box code,
+.thinking-box code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.answer-box table {
+  border-collapse: collapse;
+  margin: 0.6em 0;
+}
+
+.answer-box th,
+.answer-box td {
+  border: 1px solid #ccc;
+  padding: 0.3em 0.6em;
+}
+
+.answer-box th {
+  background: #eee;
+}
+
+.source-item {
+  border-left: 4px solid #ddd;
+  padding: 0.4em 0.6em;
+  margin-bottom: 0.4em;
+  background: #fff;
+  border-top: 1px solid #eee;
+  border-right: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.source-item.cited {
+  border-left-color: #2e7d32;
+  background: #f1f8f1;
+}
+
+.source-label {
+  font-size: 0.75rem;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.source-preview {
+  font-size: 0.85rem;
+  color: #333;
+  margin-top: 0.2em;
+}
+
+.source-path {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.2em;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: white;
+  margin-left: 0.4em;
+}
+
+.badge-refusal,
+.badge-not-grounded {
+  background: #c62828;
+}
+
+.badge-grounded {
+  background: #2e7d32;
+}
+
+.badge-partial {
+  background: #f9a825;
+}
+
+.badge-unknown {
+  background: #757575;
+}
+
+/* Shared thinking panels for answer generation and LLM-as-judge reranking. */
+.thinking-details {
+  margin-bottom: 0.4em;
+}
+
+.judge-thinking-panel {
+  margin-top: 0.5em;
+  margin-bottom: 0.4em;
+}
+
+.thinking-details::part(summary),
+.judge-thinking-panel::part(summary) {
+  color: #555;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.thinking-box {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #555;
+  background: #f5f2ea;
+  border: 1px dashed #d8cfb6;
+  border-radius: 4px;
+  padding: 0.6em 0.8em;
+  max-height: 20em;
+  overflow-y: auto;
+}
+
+.thinking-box.streaming {
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.thinking-box pre {
+  background: #efeadf;
+  padding: 0.5em 0.7em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.judge-thinking-entry {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #555;
+  background: #f5f2ea;
+  border: 1px dashed #d8cfb6;
+  border-radius: 4px;
+  padding: 0.5em 0.7em;
+  margin-bottom: 0.4em;
+  white-space: pre-wrap;
+}
+
+.judge-thinking-entry .heading {
+  font-weight: 600;
+  color: #2a2a2a;
+  font-style: normal;
+  margin-bottom: 0.2em;
+  display: block;
+}
+
+/* Module 6 product view state chips. */
+.status-label {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.status-label.finished {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+.status-label.finished::before {
+  content: "\2713\00a0";
+}
+
+.doc-chip {
+  font-size: 0.8rem;
+  padding: 0.15em 0.2em 0.15em 0.7em;
+  border-radius: 999px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #90caf9;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.doc-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #0d47a1;
+}
+
+.doc-chip-close:hover {
+  background: #bbdefb;
+}
+
+.model-chip {
+  font-size: 0.75rem;
+  padding: 0.15em 0.65em;
+  border-radius: 999px;
+  background: #f3f3f3;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.step-chip {
+  font-size: 0.8rem;
+  padding: 0.2em 0.8em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.step-chip.idle {
+  background: #eee;
+  color: #888;
+  border-color: #ddd;
+}
+
+.step-chip.active {
+  background: #e3f2fd;
+  color: #0d47a1;
+  border-color: #90caf9;
+  animation: m6-pulse 1.1s ease-in-out infinite;
+}
+
+.step-chip.done {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #a5d6a7;
+}
+
+.step-chip.done::before {
+  content: "\2713";
+  font-weight: 700;
+}
+
+.step-chip.active::before {
+  content: "\2022";
+  font-weight: 700;
+}
+
+.step-chip.idle::before {
+  content: "\25CB";
+}
+
+@keyframes m6-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(13, 71, 161, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(13, 71, 161, 0);
+  }
+}

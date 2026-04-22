@@ -2,6 +2,7 @@ package com.svenruppert.flow.views.module02;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
@@ -64,7 +65,8 @@ public class Module02View
 
   public static final String PATH = "Module02";
 
-  private static final String FALLBACK_EMBEDDING_MODEL = "nomic-embed-text";
+  private static final String FALLBACK_EMBEDDING_MODEL =
+      WorkshopDefaults.DEFAULT_EMBEDDING_MODEL;
 
   private final LlmClient llmClient;
 
@@ -304,11 +306,7 @@ public class Module02View
               + FALLBACK_EMBEDDING_MODEL + "'.");
     }
     modelSelector.setItems(names);
-    String preferred = names.stream()
-        .filter(n -> n.contains("embed"))
-        .findFirst()
-        .orElse(names.get(0));
-    modelSelector.setValue(preferred);
+    modelSelector.setValue(WorkshopDefaults.preferredEmbeddingModel(names));
   }
 
   private void onAdd() {

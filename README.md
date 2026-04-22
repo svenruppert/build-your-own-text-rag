@@ -35,8 +35,8 @@ previous:
 ### Required Ollama models
 
 ```
-ollama pull nomic-embed-text   # text embeddings (all modules)
-ollama pull llama3.2           # generation + grounding (modules 05/06)
+ollama pull nomic-embed-text-v2-moe   # text embeddings (all modules)
+ollama pull gemma4:e4b                # generation, reranking + grounding
 ```
 
 Any Ollama-compatible embedding and chat model can be swapped in via
