@@ -1,0 +1,111 @@
+/* Module 04 -- Retrieval Lab */
+
+.m04-header-subtitle {
+  color: #666;
+  margin-top: -0.4em;
+}
+
+/* Fixed width; internal file list hidden -- we render our own chip row */
+.compact-upload {
+  width: 16em;
+}
+
+.compact-upload::part(file-list) {
+  display: none;
+}
+
+.pending-chips {
+  gap: 0.3em;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pending-chip-empty {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.pending-chip {
+  background: #eef;
+  color: #224;
+  border-radius: 999px;
+  padding: 0.2em 0.9em;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.m04-corpus-footer {
+  color: #555;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.m04-query-field {
+  width: 28em;
+}
+
+.m04-top-k-field {
+  width: 6em;
+}
+
+.m04-size-field {
+  width: 8em;
+}
+
+.m04-latency-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.m04-rerank-progress {
+  width: 20em;
+}
+
+.m04-rerank-status {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.m04-results-grid {
+  height: 38em;
+  min-height: 28em;
+}
+
+.m04-source-pill {
+  color: white;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+}
+
+.judge-thinking-panel {
+  margin-top: 0.5em;
+}
+
+.judge-thinking-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.judge-thinking-entry {
+  background: #f8f8f8;
+  border-left: 3px solid #ccc;
+  padding: 0.5em 0.75em;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.judge-thinking-entry .heading {
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.3em;
+  display: block;
+}

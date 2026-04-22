@@ -51,6 +51,33 @@
     background: var(--lumo-primary-color);
     color: var(--lumo-primary-contrast-color);
 }
+.glossary-heading {
+    margin: 0 0 var(--lumo-space-s) 0;
+}
+.glossary-intro {
+    color: var(--lumo-secondary-text-color);
+    max-width: 640px;
+    line-height: 1.55;
+}
+.glossary-counter {
+    color: var(--lumo-secondary-text-color);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.glossary-section-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: var(--lumo-space-l) 0 var(--lumo-space-s) 0;
+    color: var(--lumo-primary-text-color);
+}
+.glossary-unavailable {
+    color: var(--lumo-secondary-text-color);
+}
+.glossary-footer {
+    color: var(--lumo-tertiary-text-color);
+    font-size: 0.85rem;
+    margin-top: var(--lumo-space-l);
+}
 .glossary-letter-nav a.disabled {
     background: var(--lumo-contrast-5pct);
     color: var(--lumo-disabled-text-color);

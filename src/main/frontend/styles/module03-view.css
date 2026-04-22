@@ -1,4 +1,4 @@
-/* Module 3 Chunking Lab styles. */
+/* Module 03 -- Chunking Lab */
 
 vaadin-text-area.chunk-lab-doc textarea {
   font-family: ui-monospace, SFMono-Regular, monospace !important;
@@ -45,6 +45,14 @@ vaadin-text-area.chunk-lab-doc textarea {
   font-size: 0.8rem;
   border-radius: 999px;
   cursor: pointer;
+  color: #222;
+  border: 1px solid #ccc;
+  font-weight: 500;
+}
+
+.chunk-chip--focused {
+  border: 1.5px solid #333;
+  font-weight: 600;
 }
 
 .chunk-viz {
@@ -89,4 +97,41 @@ vaadin-text-area.chunk-lab-doc textarea {
   margin-right: 0.5em;
   border: 1px solid #666;
   vertical-align: middle;
+}
+
+.m03-header-subtitle {
+  color: #666;
+  margin-top: -0.4em;
+}
+
+.m03-chunk-button {
+  min-width: 8em;
+  flex-shrink: 0;
+}
+
+.m03-stats-button {
+  min-width: 10em;
+  flex-shrink: 0;
+}
+
+.m03-stats-body {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.m03-size-field {
+  width: 9em;
+}
+
+.m03-legend-heading {
+  margin-bottom: 0;
+  margin-right: 0.75em;
+}
+
+.m03-legend-row {
+  min-width: 0;
+}
+
+.m03-main-panels-row {
+  height: 34em;
 }

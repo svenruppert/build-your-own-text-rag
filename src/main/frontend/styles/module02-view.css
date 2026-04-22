@@ -1,0 +1,63 @@
+/* Module 02 -- Vector Store Lab */
+
+.m02-header-subtitle {
+  color: #666;
+  margin-top: -0.4em;
+}
+
+.m02-model-selector {
+  width: 22em;
+  min-width: 18em;
+}
+
+.m02-store-toggle {
+  margin-left: 1em;
+}
+
+.m02-add-text-field {
+  width: 22em;
+}
+
+.m02-add-id-field {
+  width: 14em;
+}
+
+.m02-add-payload-field {
+  width: 14em;
+}
+
+.m02-bulk-field {
+  min-height: 10em;
+}
+
+.m02-section-title {
+  font-weight: 600;
+  color: var(--lumo-secondary-text-color);
+  font-size: 0.95rem;
+}
+
+.m02-section-divider {
+  border-top: 1px solid var(--lumo-contrast-10pct);
+  margin: var(--lumo-space-m) 0 var(--lumo-space-xs) 0;
+  width: 100%;
+}
+
+.m02-query-field {
+  width: 28em;
+}
+
+.m02-top-k-field {
+  width: 6em;
+}
+
+.m02-timing-label {
+  color: #555;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.m02-size-footer {
+  color: #555;
+  font-size: 0.85rem;
+  font-family: monospace;
+}

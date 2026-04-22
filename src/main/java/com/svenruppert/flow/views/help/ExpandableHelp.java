@@ -20,7 +20,8 @@ import com.vaadin.flow.component.details.DetailsVariant;
 public class ExpandableHelp extends Details {
 
   public ExpandableHelp(HelpEntry entry) {
-    super("What is this? -- " + entry.title());
+    super("");
+    setSummaryText(getTranslation("help.summary", entry.title()));
     addClassName("workshop-help");
     addThemeVariants(DetailsVariant.FILLED, DetailsVariant.SMALL);
     setOpened(false);

@@ -81,13 +81,13 @@ public class MainView
   // Status zone containers -- repopulated by runDiagnostics().
   private final Div ollamaPanelBody = new Div();
   private final Div modelsPanelBody = new Div();
-  private final Button refreshButton = new Button("Refresh", VaadinIcon.REFRESH.create());
+  private final Button refreshButton = new Button(VaadinIcon.REFRESH.create());
 
   public MainView() {
     setSizeFull();
     setPadding(false);
     setSpacing(false);
-    getStyle().set("background", "var(--lumo-base-color)");
+    addClassName("dashboard-root");
 
     add(buildHero());
     add(buildDivider());
@@ -99,6 +99,7 @@ public class MainView
     add(buildDivider());
     add(buildResourcesZone());
 
+    refreshButton.setText(getTranslation("main.system.refresh"));
     refreshButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
     refreshButton.addClickListener(e -> runDiagnostics());
   }
@@ -121,12 +122,8 @@ public class MainView
     Div wrap = new Div();
     wrap.addClassNames("dashboard-zone", "dashboard-hero");
 
-    H1 heading = new H1("Text-RAG Workshop");
-    Paragraph sub = new Paragraph(
-        "Welcome. You are building a self-hosted RAG system -- six "
-            + "modules, each a building block. The picture below is the "
-            + "architecture you are assembling. Use the module cards to "
-            + "jump in.");
+    H1 heading = new H1(getTranslation("main.hero.title"));
+    Paragraph sub = new Paragraph(getTranslation("main.hero.subtitle"));
     wrap.add(heading, sub);
     return wrap;
   }
@@ -137,34 +134,28 @@ public class MainView
     Div zone = new Div();
     zone.addClassName("dashboard-zone");
 
-    H2 heading = new H2("Modules");
+    H2 heading = new H2(getTranslation("main.modules.heading"));
     Div grid = new Div();
     grid.addClassName("dashboard-grid");
 
     grid.add(
-        new ModuleCard("M1", "Chat",
-            "The Ollama client used throughout the workshop. Starts simple; "
-                + "every module builds on this.",
+        new ModuleCard("M1", getTranslation("main.module1.title"),
+            getTranslation("main.module1.desc"),
             ACCENT_NEUTRAL, Module01View.PATH),
-        new ModuleCard("M2", "Vector Store",
-            "EclipseStore with JVector. Persistent raw vectors, HNSW index "
-                + "rebuilt on demand.",
+        new ModuleCard("M2", getTranslation("main.module2.title"),
+            getTranslation("main.module2.desc"),
             ACCENT_INDEXING, Module02View.PATH),
-        new ModuleCard("M3", "Chunking",
-            "Four chunking strategies, from fixed-size to structure-aware. "
-                + "Design decisions, not neutral pre-processing.",
+        new ModuleCard("M3", getTranslation("main.module3.title"),
+            getTranslation("main.module3.desc"),
             ACCENT_INDEXING, Module03View.PATH),
-        new ModuleCard("M4", "Retrieval",
-            "Vector search, BM25, hybrid fusion, and an LLM-as-judge "
-                + "reranker. Four strategies, one Retriever interface.",
+        new ModuleCard("M4", getTranslation("main.module4.title"),
+            getTranslation("main.module4.desc"),
             ACCENT_QUERY, Module04View.PATH),
-        new ModuleCard("M5", "Generation",
-            "Grounded answers with inline attribution. Streaming tokens, "
-                + "refusal detection, optional grounding check.",
+        new ModuleCard("M5", getTranslation("main.module5.title"),
+            getTranslation("main.module5.desc"),
             ACCENT_QUERY, Module05View.PATH),
-        new ModuleCard("M6", "Product",
-            "All six modules composed into one production-style RAG "
-                + "system. The finished artefact.",
+        new ModuleCard("M6", getTranslation("main.module6.title"),
+            getTranslation("main.module6.desc"),
             ACCENT_PRODUCT, Module06View.PATH));
 
     zone.add(heading, grid);
@@ -182,24 +173,22 @@ public class MainView
     headerRow.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
     headerRow.setWidthFull();
     headerRow.setSpacing(true);
-    H2 h = new H2("System");
-    h.getStyle().set("margin", "0");
+    H2 h = new H2(getTranslation("main.system.heading"));
+    h.addClassName("dashboard-system-heading");
     headerRow.add(h, refreshButton);
 
     Div row = new Div();
-    row.addClassName("dashboard-system-row");
+    row.addClassNames("dashboard-system-row", "dashboard-system-body");
     row.add(buildOllamaPanel(), buildModelsPanel());
 
     zone.add(headerRow, new Div(row));
-    // margin between header and row
-    row.getStyle().set("margin-top", "var(--lumo-space-m)");
     return zone;
   }
 
   private Component buildOllamaPanel() {
     Div panel = new Div();
     panel.addClassName("dashboard-panel");
-    H3 title = new H3("Ollama");
+    H3 title = new H3(getTranslation("main.system.ollama.panel"));
     panel.add(title, ollamaPanelBody);
     return panel;
   }
@@ -207,7 +196,7 @@ public class MainView
   private Component buildModelsPanel() {
     Div panel = new Div();
     panel.addClassName("dashboard-panel");
-    H3 title = new H3("Models");
+    H3 title = new H3(getTranslation("main.system.models.panel"));
     panel.add(title, modelsPanelBody);
     return panel;
   }
@@ -267,8 +256,8 @@ public class MainView
     row.setSpacing(true);
     ProgressBar bar = new ProgressBar();
     bar.setIndeterminate(true);
-    bar.setWidth("6em");
-    Span label = new Span("Checking...");
+    bar.addClassName("dashboard-checking-bar");
+    Span label = new Span(getTranslation("main.system.checking"));
     label.addClassName("dashboard-muted");
     row.add(bar, label);
     return row;
@@ -278,37 +267,35 @@ public class MainView
     ollamaPanelBody.removeAll();
     if (reachable) {
       Icon ok = VaadinIcon.CHECK_CIRCLE.create();
-      ok.getStyle().set("color", "var(--lumo-success-color)");
-      Span line = new Span(new Text("Reachable at " + llmConfig.baseUrl()));
+      ok.addClassName("dashboard-status-ok");
+      Span line = new Span(new Text(getTranslation("main.system.ollama.reachable", llmConfig.baseUrl())));
       HorizontalLayout row = new HorizontalLayout(ok, line);
       row.setAlignItems(FlexComponent.Alignment.CENTER);
       row.setSpacing(true);
       ollamaPanelBody.add(row);
 
-      Paragraph versionLine = new Paragraph("Ollama " + version.orElse("(unknown)"));
-      versionLine.addClassName("dashboard-muted");
-      versionLine.getStyle().set("margin", "0.3em 0 0 0");
+      Paragraph versionLine = new Paragraph(getTranslation("main.system.ollama.version", version.orElse("(unknown)")));
+      versionLine.addClassNames("dashboard-muted", "dashboard-ollama-detail");
       ollamaPanelBody.add(versionLine);
     } else {
       Icon warn = VaadinIcon.WARNING.create();
-      warn.getStyle().set("color", "var(--lumo-error-color)");
-      Span line = new Span(new Text("Not reachable at " + llmConfig.baseUrl()));
+      warn.addClassName("dashboard-status-error");
+      Span line = new Span(new Text(getTranslation("main.system.ollama.unreachable", llmConfig.baseUrl())));
       HorizontalLayout row = new HorizontalLayout(warn, line);
       row.setAlignItems(FlexComponent.Alignment.CENTER);
       row.setSpacing(true);
       ollamaPanelBody.add(row);
 
-      Paragraph follow = new Paragraph("Is Ollama running?");
-      follow.addClassName("dashboard-muted");
-      follow.getStyle().set("margin", "0.3em 0 0 0");
+      Paragraph follow = new Paragraph(getTranslation("main.system.ollama.running"));
+      follow.addClassNames("dashboard-muted", "dashboard-ollama-detail");
       ollamaPanelBody.add(follow);
 
-      Anchor install = new Anchor("https://ollama.com/download", "Install Ollama");
+      Anchor install = new Anchor("https://ollama.com/download", getTranslation("main.system.ollama.install"));
       install.setTarget(AnchorTarget.BLANK);
       install.getElement().setAttribute("rel", "noopener");
       install.addClassName("dashboard-link");
       Icon ext = VaadinIcon.EXTERNAL_LINK.create();
-      ext.getStyle().set("--vaadin-icon-size", "0.9em");
+      ext.addClassName("dashboard-ext-icon");
       install.add(ext);
       ollamaPanelBody.add(install);
     }
@@ -317,18 +304,17 @@ public class MainView
   private void renderModelsPanel(boolean reachable, Map<String, String> installed) {
     modelsPanelBody.removeAll();
     if (!reachable) {
-      Paragraph offline = new Paragraph("Model status unavailable -- Ollama offline.");
-      offline.addClassName("dashboard-muted");
-      offline.getStyle().set("margin", "0");
+      Paragraph offline = new Paragraph(getTranslation("main.system.models.offline"));
+      offline.addClassNames("dashboard-muted", "dashboard-offline-note");
       modelsPanelBody.add(offline);
       return;
     }
 
-    modelsPanelBody.add(buildModelBlock("Required", REQUIRED_MODELS, installed, true));
+    modelsPanelBody.add(buildModelBlock(getTranslation("main.system.models.required"), REQUIRED_MODELS, installed, true));
     Div spacer = new Div();
-    spacer.getStyle().set("height", "var(--lumo-space-m)");
+    spacer.addClassName("dashboard-model-spacer");
     modelsPanelBody.add(spacer);
-    modelsPanelBody.add(buildModelBlock("Optional", OPTIONAL_MODELS, installed, false));
+    modelsPanelBody.add(buildModelBlock(getTranslation("main.system.models.optional"), OPTIONAL_MODELS, installed, false));
   }
 
   private Component buildModelBlock(String blockTitle,
@@ -339,8 +325,7 @@ public class MainView
     box.setPadding(false);
     box.setSpacing(false);
     H3 title = new H3(blockTitle);
-    title.getStyle().set("margin", "0 0 var(--lumo-space-xs) 0")
-        .set("font-size", "0.95rem");
+    title.addClassName("dashboard-model-block-title");
     box.add(title);
 
     for (String name : expected) {
@@ -382,18 +367,17 @@ public class MainView
     Icon icon;
     if (present) {
       icon = VaadinIcon.CHECK_CIRCLE.create();
-      icon.getStyle().set("color", "var(--lumo-success-color)");
+      icon.addClassName("dashboard-status-ok");
     } else {
       icon = VaadinIcon.WARNING.create();
-      icon.getStyle().set("color", requiredBlock ? "#d97706" : "var(--lumo-tertiary-text-color)");
+      icon.addClassName(requiredBlock ? "dashboard-status-warn" : "dashboard-status-optional");
     }
 
     VerticalLayout col = new VerticalLayout();
     col.setPadding(false);
     col.setSpacing(false);
     Span nameSpan = new Span(name);
-    nameSpan.getStyle().set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.9rem");
+    nameSpan.addClassName("dashboard-model-name");
     col.add(nameSpan);
     if (present && digest != null && !digest.isEmpty()) {
       Span d = new Span(digest);
@@ -405,7 +389,7 @@ public class MainView
     row.setFlexGrow(1, col);
 
     if (!present) {
-      Button copy = new Button("Copy pull command", VaadinIcon.CLIPBOARD.create());
+      Button copy = new Button(getTranslation("main.system.models.copy"), VaadinIcon.CLIPBOARD.create());
       copy.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
       copy.addClickListener(e -> copyToClipboard("ollama pull " + name));
       row.add(copy);
@@ -416,7 +400,7 @@ public class MainView
   private void copyToClipboard(String text) {
     UI.getCurrent().getPage().executeJs(
         "navigator.clipboard && navigator.clipboard.writeText($0)", text);
-    Notification.show("Copied: " + text);
+    Notification.show(getTranslation("main.system.models.copied", text));
   }
 
   // ---------- zone 5: resources + glossary ---------------------------
@@ -435,14 +419,14 @@ public class MainView
   private Component buildLinksPanel() {
     Div panel = new Div();
     panel.addClassName("dashboard-panel");
-    H3 title = new H3("Links");
+    H3 title = new H3(getTranslation("main.links.panel"));
     panel.add(title);
 
-    panel.add(internalLink("Glossary -- 30 terms", GlossaryView.PATH, VaadinIcon.BOOK));
-    panel.add(externalLink("Ollama documentation", "https://docs.ollama.com"));
-    panel.add(externalLink("Ollama installation guide", "https://ollama.com/download"));
-    panel.add(externalLink("URL-Shortener project", "https://github.com/svenruppert/url-shortener"));
-    panel.add(externalLink("sven ruppert -- blog", "https://svenruppert.com"));
+    panel.add(internalLink(getTranslation("main.links.glossary"), GlossaryView.PATH, VaadinIcon.BOOK));
+    panel.add(externalLink(getTranslation("main.links.ollama.docs"), "https://docs.ollama.com"));
+    panel.add(externalLink(getTranslation("main.links.ollama.install"), "https://ollama.com/download"));
+    panel.add(externalLink(getTranslation("main.links.urlshortener"), "https://github.com/svenruppert/url-shortener"));
+    panel.add(externalLink(getTranslation("main.links.blog"), "https://svenruppert.com"));
     return panel;
   }
 
@@ -453,10 +437,8 @@ public class MainView
     // trailing icon.
     Div wrap = new Div();
     wrap.addClassName("dashboard-link");
-    wrap.getStyle().set("padding", "0.15em 0").set("cursor", "pointer");
     Icon leading = iconKind.create();
-    leading.getStyle().set("--vaadin-icon-size", "1em")
-        .set("margin-right", "0.35em");
+    leading.addClassName("dashboard-leading-icon");
     Span text = new Span(label);
     wrap.add(leading, text);
     wrap.addClickListener(e -> UI.getCurrent().navigate(route));
@@ -469,10 +451,10 @@ public class MainView
     a.getElement().setAttribute("rel", "noopener");
     a.addClassName("dashboard-link");
     Icon ext = VaadinIcon.EXTERNAL_LINK.create();
-    ext.getStyle().set("--vaadin-icon-size", "0.9em");
+    ext.addClassName("dashboard-ext-icon");
     a.add(ext);
     Div wrap = new Div(a);
-    wrap.getStyle().set("padding", "0.15em 0");
+    wrap.addClassName("dashboard-link-row");
     return wrap;
   }
 

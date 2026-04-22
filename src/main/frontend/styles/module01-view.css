@@ -1,0 +1,58 @@
+/* Module 01 -- Chat view */
+
+.m01-header-subtitle {
+  color: #666;
+  margin-top: -0.4em;
+}
+
+.m01-model-selector {
+  width: 24em;
+  min-width: 20em;
+}
+
+.m01-prompt-field {
+  min-height: 6em;
+}
+
+.m01-send-button {
+  align-self: flex-end;
+}
+
+.m01-attachment-chip {
+  background: #eef;
+  color: #224;
+  border-radius: 999px;
+  padding: 0.2em 0.9em;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.m01-bubble {
+  padding: 0.6em 0.9em;
+  border-radius: 0.6em;
+  margin-bottom: 0.3em;
+  max-width: 100%;
+}
+
+.m01-bubble--user {
+  background: #e7f0ff;
+}
+
+.m01-bubble--assistant {
+  background: #f3f3f3;
+}
+
+.m01-bubble--plain {
+  white-space: pre-wrap;
+}
+
+.m01-bubble-author {
+  font-weight: 600;
+}
+
+.m01-latency {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.7em;
+  align-self: flex-end;
+}

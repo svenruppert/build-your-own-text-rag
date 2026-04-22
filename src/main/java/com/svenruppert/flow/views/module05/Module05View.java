@@ -33,6 +33,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
@@ -79,6 +80,7 @@ import java.util.stream.Stream;
  * virtual thread, and the browser receives them without polling.
  */
 @Route(value = Module05View.PATH, layout = MainLayout.class)
+@CssImport("./styles/module05-view.css")
 // Shares the hljs-loader module with the Module 1 chat view so code
 // blocks inside the assistant answer get the same syntax-highlighting
 // treatment. The loader is idempotent (guards on a window flag).
@@ -95,11 +97,11 @@ public class Module05View
       WorkshopDefaults.DEFAULT_GENERATION_MODEL;
 
   enum RetrieverChoice {
-    VECTOR("Vector"), BM25("BM25"), HYBRID("Hybrid (RRF)");
-    final String label;
+    VECTOR("m05.retriever.vector"), BM25("m05.retriever.bm25"), HYBRID("m05.retriever.hybrid");
+    final String labelKey;
 
-    RetrieverChoice(String label) {
-      this.label = label;
+    RetrieverChoice(String labelKey) {
+      this.labelKey = labelKey;
     }
   }
 
@@ -140,19 +142,19 @@ public class Module05View
         pendingFilenames.add(metadata.fileName());
         renderPendingChips();
       }));
-  private final Button ingestButton = new Button("Ingest");
+  private final Button ingestButton = new Button();
   private final RadioButtonGroup<RetrieverChoice> retrieverGroup = new RadioButtonGroup<>();
-  private final IntegerField retrievalKField = sizeField("Retrieval k", 5);
-  private final Paragraph corpusFooter = new Paragraph("0 documents, 0 chunks");
+  private final IntegerField retrievalKField = sizeField(5);
+  private final Paragraph corpusFooter = new Paragraph();
 
   // ------- ask widgets ------------------------------------------------
 
-  private final TextField queryField = new TextField("Query");
-  private final ComboBox<String> modelSelector = new ComboBox<>("Model");
-  private final Button askButton = new Button("Ask");
+  private final TextField queryField = new TextField();
+  private final ComboBox<String> modelSelector = new ComboBox<>();
+  private final Button askButton = new Button();
   private final Div answerDiv = new Div();
-  private final Span latencyLabel = new Span("0.00 s");
-  private final Span refusalBadge = new Span("refusal detected");
+  private final Span latencyLabel = new Span();
+  private final Span refusalBadge = new Span();
   private final Span groundingBadge = new Span();
 
   // ------- progress (stage indicator) ---------------------------------
@@ -178,8 +180,8 @@ public class Module05View
 
   // ------- options ---------------------------------------------------
 
-  private final Checkbox strictRefusalBox = new Checkbox("Use strict refusal template");
-  private final Checkbox groundingBox = new Checkbox("Run grounding check");
+  private final Checkbox strictRefusalBox = new Checkbox();
+  private final Checkbox groundingBox = new Checkbox();
 
   public Module05View() {
     this(new DefaultLlmClient(LlmConfig.defaults()), LlmConfig.defaults());
@@ -188,6 +190,18 @@ public class Module05View
   public Module05View(LlmClient llmClient, LlmConfig llmConfig) {
     this.llmClient = Objects.requireNonNull(llmClient, "llmClient");
     this.llmConfig = Objects.requireNonNull(llmConfig, "llmConfig");
+
+    // Set labels and texts
+    ingestButton.setText(getTranslation("m05.button.ingest"));
+    retrievalKField.setLabel(getTranslation("m05.field.retrieval.k"));
+    queryField.setLabel(getTranslation("m05.field.query"));
+    modelSelector.setLabel(getTranslation("m05.field.model"));
+    askButton.setText(getTranslation("m05.button.ask"));
+    latencyLabel.setText(getTranslation("m05.latency.initial"));
+    refusalBadge.setText(getTranslation("m05.badge.refusal"));
+    strictRefusalBox.setLabel(getTranslation("m05.checkbox.strict.refusal"));
+    groundingBox.setLabel(getTranslation("m05.checkbox.grounding"));
+    corpusFooter.addClassName("m05-corpus-footer");
 
     setSizeFull();
     setPadding(true);
@@ -201,7 +215,7 @@ public class Module05View
     add(buildOptionsRow());
 
     retrieverGroup.setItems(RetrieverChoice.values());
-    retrieverGroup.setItemLabelGenerator(c -> c.label);
+    retrieverGroup.setItemLabelGenerator(c -> getTranslation(c.labelKey));
     retrieverGroup.setValue(RetrieverChoice.HYBRID);
 
     ingestButton.addClickListener(e -> onIngest());
@@ -225,7 +239,7 @@ public class Module05View
       this.uploadTempDir = Files.createTempDirectory("module05-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise ask lab", e);
-      Notification.show("Could not initialise: " + e.getMessage());
+      Notification.show(getTranslation("m05.error.init", e.getMessage()));
     }
     populateModelList();
     refreshCorpusFooter();
@@ -245,13 +259,9 @@ public class Module05View
   // ---------- layout --------------------------------------------------
 
   private Component buildHeader() {
-    H3 title = new H3("Module 5 -- Ask Lab");
-    Paragraph subtitle = new Paragraph(
-        "Ingest a handful of documents, pick a retriever, ask a question. "
-            + "Tokens stream into the answer panel as Ollama produces them; "
-            + "citations are picked out of the reply and highlighted both "
-            + "inline and on the sources list.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m05.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m05.header.subtitle"));
+    subtitle.addClassName("m05-header-subtitle");
     VerticalLayout box = new VerticalLayout(title, subtitle);
     box.setPadding(false);
     box.setSpacing(false);
@@ -272,24 +282,13 @@ public class Module05View
     upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
     upload.setMaxFiles(10);
     upload.addClassName("compact-upload");
-    upload.setWidth("16em");
-    upload.setDropLabel(new Span("Drop .txt / .md here"));
+    upload.setDropLabel(new Span(getTranslation("m05.upload.drop")));
     // Pending-chip update is wired through the UploadHandler in the
     // field initialiser; no succeeded-listener needed here.
 
+    pendingChips.addClassName("pending-chips");
     pendingChips.setSpacing(false);
-    pendingChips.getStyle()
-        .set("gap", "0.3em")
-        .set("flex", "1")
-        .set("min-width", "0")
-        .set("overflow-x", "auto");
     renderPendingChips();
-
-    corpusFooter.getStyle()
-        .set("color", "#555")
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("flex-shrink", "0");
 
     HorizontalLayout uploadRow = new HorizontalLayout(
         upload, pendingChips, ingestButton, corpusFooter);
@@ -318,7 +317,7 @@ public class Module05View
   private void renderPendingChips() {
     pendingChips.removeAll();
     if (pendingFilenames.isEmpty()) {
-      Span empty = new Span("no files queued");
+      Span empty = new Span(getTranslation("m05.chip.empty"));
       empty.addClassName("pending-chip-empty");
       pendingChips.add(empty);
       return;
@@ -326,8 +325,7 @@ public class Module05View
     for (String name : pendingFilenames) {
       Span chip = new Span(name + "  \u00D7");
       chip.addClassName("pending-chip");
-      chip.getElement().setAttribute("title", "Click to remove from queue");
-      chip.getStyle().set("cursor", "pointer");
+      chip.getElement().setAttribute("title", getTranslation("m05.chip.remove.title"));
       chip.addClickListener(e -> {
         pendingFilenames.remove(name);
         renderPendingChips();
@@ -337,15 +335,9 @@ public class Module05View
   }
 
   private Component buildAskRow() {
-    queryField.setWidth("32em");
-    modelSelector.setWidth("16em");
-
-    latencyLabel.getStyle()
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("color", "#555")
-        .set("margin-left", "0.6em");
-
+    queryField.addClassName("m05-query-field");
+    modelSelector.addClassName("m05-model-selector");
+    latencyLabel.addClassName("m05-latency-label");
     refusalBadge.addClassNames("badge", "badge-refusal");
     // Grounding badge classes are set dynamically per verdict.
 
@@ -373,14 +365,11 @@ public class Module05View
   }
 
   private Component buildProgressRow() {
-    askProgress.setWidth("22em");
+    askProgress.addClassName("m05-ask-progress");
     askProgress.setMin(0.0);
     askProgress.setMax(1.0);
     askProgress.setValue(0.0);
-    askStatus.getStyle()
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("color", "#555");
+    askStatus.addClassName("m05-ask-status");
     progressRow.setAlignItems(FlexComponent.Alignment.CENTER);
     progressRow.setSpacing(true);
     progressRow.add(askProgress, askStatus);
@@ -393,16 +382,19 @@ public class Module05View
     answerDiv.setWidthFull();
 
     VerticalLayout left = new VerticalLayout(
-        thinkingPanel.component(), new Span("Answer"), answerDiv);
+        thinkingPanel.component(),
+        new Span(getTranslation("m05.label.answer")),
+        answerDiv);
     left.setPadding(false);
     left.setSpacing(false);
-    left.getStyle().set("flex", "1").set("min-width", "0");
+    left.addClassName("m05-answer-column");
 
-    VerticalLayout right = new VerticalLayout(new Span("Sources"), sourcesPanel);
+    VerticalLayout right = new VerticalLayout(
+        new Span(getTranslation("m05.label.sources")),
+        sourcesPanel);
     right.setPadding(false);
     right.setSpacing(false);
-    right.getStyle().set("flex", "1").set("min-width", "0")
-        .set("max-width", "28em");
+    right.addClassName("m05-sources-column");
 
     HorizontalLayout row = new HorizontalLayout(left, right);
     row.setWidthFull();
@@ -424,11 +416,11 @@ public class Module05View
 
   private void onIngest() {
     if (pipeline == null) {
-      Notification.show("Pipeline not initialised yet.");
+      Notification.show(getTranslation("m05.error.not.init"));
       return;
     }
     if (pendingFilenames.isEmpty()) {
-      Notification.show("No files queued. Drop one or more .txt / .md files first.");
+      Notification.show(getTranslation("m05.error.no.files"));
       return;
     }
     FileDocumentLoader loader = new FileDocumentLoader();
@@ -450,7 +442,7 @@ public class Module05View
         processed++;
       } catch (IOException e) {
         logger().warn("Ingest of {} failed: {}", fileName, e.getMessage());
-        Notification.show("Failed to ingest " + fileName + ": " + e.getMessage());
+        Notification.show(getTranslation("m05.error.ingest", fileName, e.getMessage()));
       } finally {
         pendingFilenames.remove(fileName);
         pendingBytes.remove(fileName);
@@ -458,29 +450,29 @@ public class Module05View
     }
     renderPendingChips();
     int added = pipeline.chunkRegistry().size() - before;
-    Notification.show("Ingested " + processed + " documents (" + added + " new chunks).");
+    Notification.show(getTranslation("m05.notify.ingested", processed, added));
     refreshCorpusFooter();
   }
 
   private void refreshCorpusFooter() {
     int chunks = pipeline != null ? pipeline.chunkRegistry().size() : 0;
-    corpusFooter.setText(documentsIngested + " documents, " + chunks + " chunks");
+    corpusFooter.setText(getTranslation("m05.corpus.footer", documentsIngested, chunks));
   }
 
   // ---------- ask / streaming ----------------------------------------
 
   private void onAsk() {
     if (pipeline == null) {
-      Notification.show("Pipeline not initialised yet.");
+      Notification.show(getTranslation("m05.error.not.init"));
       return;
     }
     String query = queryField.getValue();
     if (query == null || query.isBlank()) {
-      Notification.show("Enter a query first.");
+      Notification.show(getTranslation("m05.error.query.empty"));
       return;
     }
     if (pipeline.chunkRegistry().isEmpty()) {
-      Notification.show("Ingest at least one document first.");
+      Notification.show(getTranslation("m05.error.no.docs"));
       return;
     }
     int retrievalK = valueOr(retrievalKField, 5);
@@ -496,15 +488,13 @@ public class Module05View
     sourcesPanel.removeAll();
     refusalBadge.setVisible(false);
     groundingBadge.setVisible(false);
-    latencyLabel.setText("streaming...");
+    latencyLabel.setText(getTranslation("m05.status.streaming"));
     askButton.setEnabled(false);
 
-    // Stage indicator: start at 0% with an "Starting" label. The
-    // listener on ask() advances the bar on each phase transition so
-    // the user can see which pipeline step is currently running.
+    // Stage indicator: start at 0% with a "Starting" label.
     boolean groundingEnabled = groundingBox.getValue();
     askProgress.setValue(0.0);
-    askStatus.setText("Starting...");
+    askStatus.setText(getTranslation("m05.status.starting"));
     progressRow.setVisible(true);
 
     Retriever retriever = buildRetriever();
@@ -537,10 +527,10 @@ public class Module05View
       } catch (RuntimeException e) {
         logger().warn("ask-worker failed: {}", e.getMessage());
         ui.access(() -> {
-          Notification.show("Ask failed: " + e.getMessage());
+          Notification.show(getTranslation("m05.error.ask", e.getMessage()));
           askButton.setEnabled(true);
-          latencyLabel.setText("error");
-          askStatus.setText("error: " + e.getMessage());
+          latencyLabel.setText(getTranslation("m05.status.error"));
+          askStatus.setText(getTranslation("m05.status.error.detail", e.getMessage()));
         });
       }
     });
@@ -554,9 +544,6 @@ public class Module05View
    * not to estimate a true time-to-completion.
    */
   private void applyStage(RagPipeline.Stage stage, boolean groundingEnabled) {
-    // Weight each phase roughly by typical wall-clock time so the bar
-    // doesn't freeze at 66% during the long generation step. The
-    // grounding phase only contributes when enabled.
     double fraction = switch (stage) {
       case RETRIEVAL_STARTED -> 0.05;
       case RETRIEVAL_FINISHED -> 0.15;
@@ -567,13 +554,15 @@ public class Module05View
       case DONE -> 1.0;
     };
     String label = switch (stage) {
-      case RETRIEVAL_STARTED -> "Retrieving chunks...";
-      case RETRIEVAL_FINISHED -> "Retrieval done.";
-      case GENERATION_STARTED -> "Generating answer (streaming tokens)...";
-      case GENERATION_FINISHED -> groundingEnabled ? "Generation done." : "Done.";
-      case GROUNDING_STARTED -> "Running grounding check...";
-      case GROUNDING_FINISHED -> "Grounding check done.";
-      case DONE -> "Done.";
+      case RETRIEVAL_STARTED -> getTranslation("m05.stage.retrieval.started");
+      case RETRIEVAL_FINISHED -> getTranslation("m05.stage.retrieval.finished");
+      case GENERATION_STARTED -> getTranslation("m05.stage.generation.started");
+      case GENERATION_FINISHED -> groundingEnabled
+          ? getTranslation("m05.stage.generation.finished.grounding")
+          : getTranslation("m05.stage.done");
+      case GROUNDING_STARTED -> getTranslation("m05.stage.grounding.started");
+      case GROUNDING_FINISHED -> getTranslation("m05.stage.grounding.finished");
+      case DONE -> getTranslation("m05.stage.done");
     };
     askProgress.setValue(fraction);
     askStatus.setText(label);
@@ -593,13 +582,6 @@ public class Module05View
   }
 
   private void finaliseAnswer(GeneratedAnswer answer) {
-    // Finalise the answer in three stages:
-    //   1. Render Markdown -> HTML (commonmark escapes stray HTML for us;
-    //      [Chunk N] survives because it is not a valid Markdown link
-    //      without a matching reference definition).
-    //   2. Wrap cited [Chunk N] occurrences in <mark class="chunk-ref">
-    //      so the inline citation and the sources panel share a visual.
-    //   3. Ask highlight.js to colourise any fenced <pre><code>.
     Set<Integer> cited = new HashSet<>(answer.citedChunkIndices());
     String html = MarkdownSupport.renderSafeHtml(answer.text());
     String withCitations = AttributionParser.highlight(html, cited);
@@ -610,8 +592,8 @@ public class Module05View
     answerDiv.add(MarkdownSupport.htmlDiv(withCitations));
     MarkdownSupport.highlightCodeBlocks(answerDiv);
 
-    latencyLabel.setText(String.format(Locale.ROOT, "%.2f s",
-        answer.latencyMillis() / 1000.0));
+    latencyLabel.setText(getTranslation("m05.latency.format",
+        String.format(Locale.ROOT, "%.2f", answer.latencyMillis() / 1000.0)));
 
     refusalBadge.setVisible(answer.refusalDetected());
     renderGroundingBadge(answer.groundingCheck());
@@ -630,9 +612,6 @@ public class Module05View
       thinkingPanel.finalise(thinking, "");
       return;
     }
-    // Swap the raw-token streaming view for the Markdown-rendered HTML,
-    // the same treatment the answer box gets. commonmark escapes stray
-    // HTML; renderer is configured for GFM tables and sanitised links.
     String html = MarkdownSupport.renderSafeHtml(thinking);
     thinkingPanel.finalise(thinking, html);
   }
@@ -649,12 +628,19 @@ public class Module05View
       case NOT_GROUNDED -> "badge-not-grounded";
       case UNKNOWN -> "badge-unknown";
     };
-    // Reset and set classes.
+    String verdictText = switch (check.verdict()) {
+      case GROUNDED -> getTranslation("m05.verdict.grounded");
+      case PARTIAL -> getTranslation("m05.verdict.partial");
+      case NOT_GROUNDED -> getTranslation("m05.verdict.not.grounded");
+      case UNKNOWN -> getTranslation("m05.verdict.unknown");
+    };
     groundingBadge.setClassName("");
     groundingBadge.addClassNames("badge", cls);
-    groundingBadge.setText(check.verdict().name().toLowerCase(Locale.ROOT).replace('_', ' '));
+    groundingBadge.setText(verdictText);
     groundingBadge.getElement().setAttribute("title",
-        check.rationale().isEmpty() ? "no rationale returned" : check.rationale());
+        check.rationale().isEmpty()
+            ? getTranslation("m05.grounding.no.rationale")
+            : check.rationale());
     groundingBadge.setVisible(true);
   }
 
@@ -667,11 +653,11 @@ public class Module05View
     modelSelector.setValue(WorkshopDefaults.preferredGenerationModel(names));
   }
 
-  private static IntegerField sizeField(String label, int defaultValue) {
-    IntegerField field = new IntegerField(label);
+  private static IntegerField sizeField(int defaultValue) {
+    IntegerField field = new IntegerField();
     field.setValue(defaultValue);
     field.setMin(1);
-    field.setWidth("7em");
+    field.addClassName("m05-size-field");
     return field;
   }
 

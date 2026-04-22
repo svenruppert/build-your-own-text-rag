@@ -36,6 +36,7 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.server.streams.UploadMetadata;
+import com.vaadin.flow.component.dependency.CssImport;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -71,6 +72,7 @@ import java.util.Objects;
  * applied through {@link RagSystemBuilder}. This class is a thin UI
  * over {@link RagSystem}'s two public methods.
  */
+@CssImport("./styles/module06-view.css")
 @Route(value = Module06View.PATH, layout = MainLayout.class)
 public class Module06View
     extends VerticalLayout
@@ -103,8 +105,8 @@ public class Module06View
    */
   private final Upload upload = new Upload(
       UploadHandler.inMemory(this::ingestUploaded));
-  private final Span statusLabel = new Span("No documents ingested yet.");
-  private final Paragraph corpusFooter = new Paragraph("0 documents, 0 chunks");
+  private final Span statusLabel = new Span();
+  private final Paragraph corpusFooter = new Paragraph();
 
   /**
    * One pill per ingested source. Clicking the pill's close affordance
@@ -113,10 +115,10 @@ public class Module06View
    * stale UI cache can't diverge from the real registry.
    */
   private final HorizontalLayout documentChips = new HorizontalLayout();
-  private final Button clearAllButton = new Button("Clear all");
+  private final Button clearAllButton = new Button();
 
   private final TextField queryField = new TextField();
-  private final Button askButton = new Button("Ask");
+  private final Button askButton = new Button();
   private final Div answerDiv = new Div();
   private final RetrievalSourcesPanel sourcesPanel = new RetrievalSourcesPanel();
 
@@ -132,9 +134,9 @@ public class Module06View
    * The grounding chip is hidden while grounding is off, so the visual
    * matches the actual pipeline.
    */
-  private final Span stepRetrieve = new Span("1. Retrieve");
-  private final Span stepGenerate = new Span("2. Generate");
-  private final Span stepGround = new Span("3. Check grounding");
+  private final Span stepRetrieve = new Span();
+  private final Span stepGenerate = new Span();
+  private final Span stepGround = new Span();
   private final ProgressBar progress = new ProgressBar();
   private final Span progressStatus = new Span();
   private final HorizontalLayout stepsRow = new HorizontalLayout(
@@ -153,6 +155,14 @@ public class Module06View
   public Module06View(LlmClient llmClient, LlmConfig llmConfig) {
     this.llmClient = Objects.requireNonNull(llmClient, "llmClient");
     this.llmConfig = Objects.requireNonNull(llmConfig, "llmConfig");
+
+    statusLabel.setText(getTranslation("m06.status.no.docs"));
+    corpusFooter.setText(getTranslation("m06.corpus.footer", 0, 0));
+    clearAllButton.setText(getTranslation("m06.button.clear"));
+    askButton.setText(getTranslation("m06.button.ask"));
+    stepRetrieve.setText(getTranslation("m06.step.retrieve"));
+    stepGenerate.setText(getTranslation("m06.step.generate"));
+    stepGround.setText(getTranslation("m06.step.ground"));
 
     setSizeFull();
     setPadding(true);
@@ -187,7 +197,7 @@ public class Module06View
           .build();
     } catch (RuntimeException e) {
       logger().error("Could not initialise RagSystem", e);
-      Notification.show("Could not initialise: " + e.getMessage());
+      Notification.show(getTranslation("m06.error.init", e.getMessage()));
     }
     refreshCorpusFooter();
     renderDocumentChips();
@@ -207,25 +217,22 @@ public class Module06View
   // ---------- layout -------------------------------------------------
 
   private Component buildHeader() {
-    H3 title = new H3("Module 6 -- RAG Product");
-    Paragraph subtitle = new Paragraph(
-        "Drop a document; it is ingested on arrival. Type a question; "
-            + "tokens stream in as the model produces them. "
-            + "No knobs to tune -- the product has picked defaults.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m06.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m06.header.subtitle"));
+    subtitle.addClassName("m06-header-subtitle");
 
     // Product defaults are opaque to the user by design, but which
     // embedder and which generation model are in use matters for
     // troubleshooting ("why is this slow?", "why doesn't it know X?").
     // Surface them as monospace chips in the header.
-    Span embedderChip = new Span("embedder: " + ProductConfig.DEFAULT_EMBEDDING_MODEL);
-    Span generatorChip = new Span("generator: " + ProductConfig.DEFAULT_GENERATION_MODEL);
+    Span embedderChip = new Span(getTranslation("m06.chip.embedder", ProductConfig.DEFAULT_EMBEDDING_MODEL));
+    Span generatorChip = new Span(getTranslation("m06.chip.generator", ProductConfig.DEFAULT_GENERATION_MODEL));
     embedderChip.addClassName("model-chip");
     generatorChip.addClassName("model-chip");
     HorizontalLayout modelRow = new HorizontalLayout(embedderChip, generatorChip);
     modelRow.setSpacing(true);
     modelRow.setPadding(false);
-    modelRow.getStyle().set("margin-top", "-0.2em");
+    modelRow.addClassName("m06-model-row");
 
     VerticalLayout box = new VerticalLayout(title, subtitle, modelRow);
     box.setPadding(false);
@@ -236,16 +243,13 @@ public class Module06View
   private Component buildCorpusRow() {
     upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
     upload.setMaxFiles(20);
-    upload.setDropLabel(new Span("Drop .txt / .md here"));
-    upload.setWidth("18em");
+    upload.setDropLabel(new Span(getTranslation("m06.upload.drop")));
+    upload.addClassName("m06-upload");
     // Ingestion is wired through the UploadHandler in the field
     // initialiser -- no listener needed here.
 
     statusLabel.addClassName("status-label");
-    corpusFooter.getStyle()
-        .set("color", "#555")
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem");
+    corpusFooter.addClassName("m06-corpus-footer");
 
     // Upload is the product's only user-facing control, so its help
     // sits directly beneath it rather than mixed in with the status
@@ -270,13 +274,9 @@ public class Module06View
    */
   private Component buildDocumentChipRow() {
     documentChips.setSpacing(false);
-    documentChips.getStyle()
-        .set("gap", "0.3em")
-        .set("flex", "1")
-        .set("min-width", "0")
-        .set("overflow-x", "auto");
+    documentChips.addClassName("doc-chips");
 
-    clearAllButton.getStyle().set("flex-shrink", "0");
+    clearAllButton.addClassName("m06-clear-button");
 
     HorizontalLayout row = new HorizontalLayout(documentChips, clearAllButton);
     row.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -287,8 +287,8 @@ public class Module06View
   }
 
   private Component buildAskRow() {
-    queryField.setPlaceholder("Ask a question");
-    queryField.setWidth("32em");
+    queryField.setPlaceholder(getTranslation("m06.field.query.placeholder"));
+    queryField.addClassName("m06-query-field");
     HorizontalLayout row = new HorizontalLayout(queryField, askButton);
     row.setAlignItems(FlexComponent.Alignment.END);
     row.setSpacing(true);
@@ -311,7 +311,7 @@ public class Module06View
   }
 
   private Component buildProgressRow() {
-    progress.setWidth("22em");
+    progress.addClassName("m06-progress");
     progress.setMin(0.0);
     progress.setMax(1.0);
     progress.setValue(0.0);
@@ -327,16 +327,15 @@ public class Module06View
     answerDiv.setWidthFull();
 
     VerticalLayout left = new VerticalLayout(
-        thinkingPanel.component(), new Span("Answer"), answerDiv);
+        thinkingPanel.component(), new Span(getTranslation("m06.label.answer")), answerDiv);
     left.setPadding(false);
     left.setSpacing(false);
-    left.getStyle().set("flex", "1").set("min-width", "0");
+    left.addClassName("m06-answer-column");
 
-    VerticalLayout right = new VerticalLayout(new Span("Sources"), sourcesPanel);
+    VerticalLayout right = new VerticalLayout(new Span(getTranslation("m06.label.sources")), sourcesPanel);
     right.setPadding(false);
     right.setSpacing(false);
-    right.getStyle().set("flex", "1").set("min-width", "0")
-        .set("max-width", "28em");
+    right.addClassName("m06-sources-column");
 
     HorizontalLayout row = new HorizontalLayout(left, right);
     row.setWidthFull();
@@ -359,19 +358,20 @@ public class Module06View
   private void ingestUploaded(UploadMetadata metadata, byte[] bytes) {
     String fileName = metadata.fileName();
     if (ragSystem == null) {
-      Notification.show("System not initialised yet.");
+      Notification.show(getTranslation("m06.error.not.init"));
       return;
     }
 
     // Stage the "in progress" UI synchronously: indeterminate bar +
     // explicit status so the user sees that the long embed phase has
     // started rather than staring at a frozen widget.
+    String embeddingMsg = getTranslation("m06.status.embedding", fileName);
     askButton.setEnabled(false);
     upload.setDropAllowed(false);
-    statusLabel.setText("Embedding '" + fileName + "'...");
+    statusLabel.setText(embeddingMsg);
     statusLabel.removeClassName("finished");
     progress.setIndeterminate(true);
-    progressStatus.setText("Embedding '" + fileName + "'...");
+    progressStatus.setText(embeddingMsg);
     progressRow.setVisible(true);
 
     UI ui = UI.getCurrent();
@@ -383,10 +383,10 @@ public class Module06View
         ui.access(() -> {
           progress.setIndeterminate(false);
           progress.setValue(1.0);
-          progressStatus.setText("Embedded '" + result.sourceName()
-              + "' (" + result.chunkCount() + " chunks).");
-          statusLabel.setText("Ingested '" + result.sourceName()
-              + "' (" + result.chunkCount() + " new chunks).");
+          progressStatus.setText(getTranslation("m06.status.embedded",
+              result.sourceName(), result.chunkCount()));
+          statusLabel.setText(getTranslation("m06.status.ingested",
+              result.sourceName(), result.chunkCount()));
           statusLabel.addClassName("finished");
           refreshCorpusFooter();
           renderDocumentChips();
@@ -402,9 +402,9 @@ public class Module06View
         ui.access(() -> {
           progress.setIndeterminate(false);
           progress.setValue(0.0);
-          progressStatus.setText("Ingest failed: " + e.getMessage());
-          statusLabel.setText("Ingest of '" + fileName + "' failed.");
-          Notification.show("Could not ingest " + fileName + ": " + e.getMessage());
+          progressStatus.setText(getTranslation("m06.status.ingest.failed", e.getMessage()));
+          statusLabel.setText(getTranslation("m06.status.ingest.error", fileName));
+          Notification.show(getTranslation("m06.notify.ingest.error", fileName, e.getMessage()));
           upload.setDropAllowed(true);
           askButton.setEnabled(true);
         });
@@ -420,7 +420,7 @@ public class Module06View
   private void renderDocumentChips() {
     documentChips.removeAll();
     if (ragSystem == null || ragSystem.documentCount() == 0) {
-      Span empty = new Span("no documents ingested");
+      Span empty = new Span(getTranslation("m06.chip.empty"));
       empty.addClassName("doc-chip-empty");
       documentChips.add(empty);
       clearAllButton.setEnabled(false);
@@ -432,7 +432,7 @@ public class Module06View
       Span label = new Span(sourceName);
       Span close = new Span("\u00D7");
       close.addClassName("doc-chip-close");
-      close.getElement().setAttribute("title", "Remove this document");
+      close.getElement().setAttribute("title", getTranslation("m06.chip.remove.title"));
       close.addClickListener(e -> removeSource(sourceName));
       chip.add(label, close);
       documentChips.add(chip);
@@ -443,7 +443,7 @@ public class Module06View
   private void removeSource(String sourceName) {
     if (ragSystem == null) return;
     int removed = ragSystem.removeSource(sourceName);
-    statusLabel.setText("Removed '" + sourceName + "' (" + removed + " chunks).");
+    statusLabel.setText(getTranslation("m06.status.removed", sourceName, removed));
     statusLabel.removeClassName("finished");
     refreshCorpusFooter();
     renderDocumentChips();
@@ -452,11 +452,11 @@ public class Module06View
   private void onClearAll() {
     if (ragSystem == null) return;
     if (ragSystem.chunkCount() == 0) {
-      Notification.show("Nothing to clear.");
+      Notification.show(getTranslation("m06.notify.nothing.to.clear"));
       return;
     }
     ragSystem.clearAll();
-    statusLabel.setText("Cleared all documents.");
+    statusLabel.setText(getTranslation("m06.status.cleared"));
     statusLabel.removeClassName("finished");
     refreshCorpusFooter();
     renderDocumentChips();
@@ -464,28 +464,27 @@ public class Module06View
 
   private void refreshCorpusFooter() {
     if (ragSystem == null) {
-      corpusFooter.setText("0 documents, 0 chunks");
+      corpusFooter.setText(getTranslation("m06.corpus.footer", 0, 0));
       return;
     }
-    corpusFooter.setText(
-        ragSystem.documentCount() + " documents, "
-            + ragSystem.chunkCount() + " chunks");
+    corpusFooter.setText(getTranslation("m06.corpus.footer",
+        ragSystem.documentCount(), ragSystem.chunkCount()));
   }
 
   // ---------- ask / streaming ----------------------------------------
 
   private void onAsk() {
     if (ragSystem == null) {
-      Notification.show("System not initialised yet.");
+      Notification.show(getTranslation("m06.error.not.init"));
       return;
     }
     String query = queryField.getValue();
     if (query == null || query.isBlank()) {
-      Notification.show("Type a question first.");
+      Notification.show(getTranslation("m06.error.query.empty"));
       return;
     }
     if (ragSystem.chunkCount() == 0) {
-      Notification.show("Drop at least one document first.");
+      Notification.show(getTranslation("m06.error.no.docs"));
       return;
     }
 
@@ -497,7 +496,7 @@ public class Module06View
     sourcesPanel.removeAll();
     thinkingPanel.resetForStreaming();
     askButton.setEnabled(false);
-    statusLabel.setText("Answering...");
+    statusLabel.setText(getTranslation("m06.status.answering"));
     statusLabel.removeClassName("finished");
 
     resetStepChips();
@@ -506,7 +505,7 @@ public class Module06View
     // a pulsing bar makes "we're working" obvious without pretending
     // to know the fraction.
     progress.setIndeterminate(true);
-    progressStatus.setText("Embedding query...");
+    progressStatus.setText(getTranslation("m06.status.embedding.query"));
     progressRow.setVisible(true);
 
     UI ui = UI.getCurrent();
@@ -529,10 +528,10 @@ public class Module06View
       } catch (RuntimeException e) {
         logger().warn("ask failed: {}", e.getMessage());
         ui.access(() -> {
-          Notification.show("Ask failed: " + e.getMessage());
-          statusLabel.setText("error: " + e.getMessage());
+          Notification.show(getTranslation("m06.error.ask", e.getMessage()));
+          statusLabel.setText(getTranslation("m06.status.error.detail", e.getMessage()));
           progress.setIndeterminate(false);
-          progressStatus.setText("error: " + e.getMessage());
+          progressStatus.setText(getTranslation("m06.status.error.detail", e.getMessage()));
           askButton.setEnabled(true);
         });
       }
@@ -560,13 +559,13 @@ public class Module06View
       case DONE -> 1.0;
     };
     String label = switch (stage) {
-      case RETRIEVAL_STARTED -> "Retrieving chunks...";
-      case RETRIEVAL_FINISHED -> "Retrieval done.";
-      case GENERATION_STARTED -> "Generating answer (streaming tokens)...";
-      case GENERATION_FINISHED -> "Generation done.";
-      case GROUNDING_STARTED -> "Running grounding check...";
-      case GROUNDING_FINISHED -> "Grounding check done.";
-      case DONE -> "Done.";
+      case RETRIEVAL_STARTED -> getTranslation("m06.stage.retrieval.started");
+      case RETRIEVAL_FINISHED -> getTranslation("m06.stage.retrieval.finished");
+      case GENERATION_STARTED -> getTranslation("m06.stage.generation.started");
+      case GENERATION_FINISHED -> getTranslation("m06.stage.generation.finished");
+      case GROUNDING_STARTED -> getTranslation("m06.stage.grounding.started");
+      case GROUNDING_FINISHED -> getTranslation("m06.stage.grounding.finished");
+      case DONE -> getTranslation("m06.stage.done");
     };
     // First stage tick flips the bar from indeterminate (query-embed
     // phase) to determinate weighted fractions.
@@ -619,9 +618,10 @@ public class Module06View
     // "Finished" is a distinct terminal state from a running "Done."
     // glimpse: green text + checkmark so the user sees unambiguously
     // that the whole pipeline has come to rest.
-    statusLabel.setText("Finished");
+    String finished = getTranslation("m06.status.finished");
+    statusLabel.setText(finished);
     statusLabel.addClassName("finished");
-    progressStatus.setText("Finished");
+    progressStatus.setText(finished);
     if (progress.isIndeterminate()) progress.setIndeterminate(false);
     progress.setValue(1.0);
     askButton.setEnabled(true);

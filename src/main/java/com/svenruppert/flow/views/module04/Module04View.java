@@ -21,6 +21,7 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
@@ -66,6 +67,7 @@ import java.util.stream.Stream;
  * the shape of each retriever's answer is legible at a glance.
  */
 @Route(value = Module04View.PATH, layout = MainLayout.class)
+@CssImport("./styles/module04-view.css")
 public class Module04View
     extends VerticalLayout
     implements HasLogger {
@@ -82,24 +84,24 @@ public class Module04View
       "llm-judge-reranked", "#2e7d32");
 
   // Retriever / reranker choice enums drive the radio groups; their
-  // labels are shown in the UI.
+  // labelKey values are i18n keys resolved at runtime.
   enum RetrieverChoice {
-    VECTOR("Vector"), BM25("BM25"),
-    HYBRID_RRF("Hybrid (RRF)"), HYBRID_WEIGHTED("Hybrid (weighted)");
-    final String label;
+    VECTOR("m04.retriever.vector"), BM25("m04.retriever.bm25"),
+    HYBRID_RRF("m04.retriever.hybrid.rrf"), HYBRID_WEIGHTED("m04.retriever.hybrid.weighted");
+    final String labelKey;
 
-    RetrieverChoice(String label) {
-      this.label = label;
+    RetrieverChoice(String labelKey) {
+      this.labelKey = labelKey;
     }
   }
 
   enum RerankerChoice {
-    NONE("None"),
-    LLM_JUDGE("LLM-as-judge (Ollama)");
-    final String label;
+    NONE("m04.reranker.none"),
+    LLM_JUDGE("m04.reranker.llm.judge");
+    final String labelKey;
 
-    RerankerChoice(String label) {
-      this.label = label;
+    RerankerChoice(String labelKey) {
+      this.labelKey = labelKey;
     }
   }
 
@@ -138,25 +140,25 @@ public class Module04View
         pendingFilenames.add(metadata.fileName());
         renderPendingChips();
       }));
-  private final Button ingestButton = new Button("Ingest");
-  private final Paragraph corpusFooter = new Paragraph("0 documents, 0 chunks");
+  private final Button ingestButton = new Button();
+  private final Paragraph corpusFooter = new Paragraph();
 
-  private final TextField queryField = new TextField("Query");
-  private final IntegerField topKField = sizeField("Top k", 5);
+  private final TextField queryField = new TextField();
+  private final IntegerField topKField = sizeField(5);
   private final RadioButtonGroup<RetrieverChoice> retrieverGroup = new RadioButtonGroup<>();
   private final RadioButtonGroup<RerankerChoice> rerankerGroup = new RadioButtonGroup<>();
 
-  private final NumberField rrfKField = doubleField("rrfK", 60.0);
-  private final NumberField vectorWeightField = doubleField("Vector weight", 0.6);
-  private final NumberField bm25WeightField = doubleField("BM25 weight", 0.4);
+  private final NumberField rrfKField = doubleField(60.0);
+  private final NumberField vectorWeightField = doubleField(0.6);
+  private final NumberField bm25WeightField = doubleField(0.4);
 
-  private final ComboBox<String> llmJudgeModel = new ComboBox<>("Judge model");
-  private final IntegerField firstStageKField = sizeField("First-stage k", 20);
+  private final ComboBox<String> llmJudgeModel = new ComboBox<>();
+  private final IntegerField firstStageKField = sizeField(20);
 
   private final HorizontalLayout hybridParamsRow = new HorizontalLayout();
   private final HorizontalLayout rerankerParamsRow = new HorizontalLayout();
 
-  private final Button searchButton = new Button("Search");
+  private final Button searchButton = new Button();
   private final Span latencyLabel = new Span();
 
   /**
@@ -191,7 +193,7 @@ public class Module04View
   private final Map<com.svenruppert.flow.views.module03.Chunk, String>
       judgeThinking = new LinkedHashMap<>();
   private final Div judgeThinkingBody = new Div();
-  private final Details judgeThinkingPanel = new Details("Judge thinking", judgeThinkingBody);
+  private final Details judgeThinkingPanel = new Details("", judgeThinkingBody);
 
   public Module04View() {
     this(new DefaultLlmClient(LlmConfig.defaults()));
@@ -199,6 +201,18 @@ public class Module04View
 
   public Module04View(LlmClient llmClient) {
     this.llmClient = llmClient;
+
+    // Set labels and texts
+    queryField.setLabel(getTranslation("m04.field.query"));
+    topKField.setLabel(getTranslation("m04.field.top.k"));
+    firstStageKField.setLabel(getTranslation("m04.field.first.stage.k"));
+    rrfKField.setLabel(getTranslation("m04.field.rrf.k"));
+    vectorWeightField.setLabel(getTranslation("m04.field.vector.weight"));
+    bm25WeightField.setLabel(getTranslation("m04.field.bm25.weight"));
+    llmJudgeModel.setLabel(getTranslation("m04.field.judge.model"));
+    ingestButton.setText(getTranslation("m04.button.ingest"));
+    searchButton.setText(getTranslation("m04.button.search"));
+    judgeThinkingPanel.setSummaryText(getTranslation("m04.judge.thinking.title"));
 
     // setSizeFull() pins this view to the viewport height, which forces
     // the results grid to share a cramped column with the ingestion and
@@ -217,12 +231,12 @@ public class Module04View
 
     // Default selections and event wiring.
     retrieverGroup.setItems(RetrieverChoice.values());
-    retrieverGroup.setItemLabelGenerator(c -> c.label);
+    retrieverGroup.setItemLabelGenerator(c -> getTranslation(c.labelKey));
     retrieverGroup.setValue(RetrieverChoice.VECTOR);
     retrieverGroup.addValueChangeListener(e -> refreshConditionalParams());
 
     rerankerGroup.setItems(RerankerChoice.values());
-    rerankerGroup.setItemLabelGenerator(c -> c.label);
+    rerankerGroup.setItemLabelGenerator(c -> getTranslation(c.labelKey));
     rerankerGroup.setValue(RerankerChoice.NONE);
     rerankerGroup.addValueChangeListener(e -> refreshConditionalParams());
 
@@ -245,7 +259,7 @@ public class Module04View
       this.uploadTempDir = Files.createTempDirectory("module04-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise retrieval lab", e);
-      Notification.show("Could not initialise: " + e.getMessage());
+      Notification.show(getTranslation("m04.error.init", e.getMessage()));
     }
     populateModelLists();
     refreshCorpusFooter();
@@ -265,13 +279,9 @@ public class Module04View
   // ---------- layout builders ----------------------------------------
 
   private Component buildHeader() {
-    H3 title = new H3("Module 4 -- Retrieval Lab");
-    Paragraph subtitle = new Paragraph(
-        "Four retrievers, two rerankers, one corpus. Every implementation "
-            + "sits on the Ollama side of the runtime axis; the architecture "
-            + "axis (bi-encoder vs. cross-encoder) is the one that actually "
-            + "changes ranking behaviour here.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m04.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m04.header.subtitle"));
+    subtitle.addClassName("m04-header-subtitle");
     VerticalLayout box = new VerticalLayout(title, subtitle);
     box.setPadding(false);
     box.setSpacing(false);
@@ -281,29 +291,18 @@ public class Module04View
   private Component buildIngestionZone() {
     upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
     upload.setMaxFiles(10);
-    // Compact visual: fixed width, and the CSS below hides the
-    // component's internal file list -- we render our own chip row
-    // next to it.
+    // Compact visual: fixed width via CSS, internal file list hidden --
+    // we render our own chip row next to it.
     upload.addClassName("compact-upload");
-    upload.setWidth("16em");
-    upload.setDropLabel(new Span("Drop .txt / .md here"));
+    upload.setDropLabel(new Span(getTranslation("m04.upload.drop")));
     // Pending-chip update is wired through the UploadHandler in the
     // field initialiser; no succeeded-listener needed here.
 
     pendingChips.addClassName("pending-chips");
     pendingChips.setSpacing(false);
-    pendingChips.getStyle()
-        .set("gap", "0.3em")
-        .set("flex", "1")
-        .set("min-width", "0")
-        .set("overflow-x", "auto");
     renderPendingChips();
 
-    corpusFooter.getStyle()
-        .set("color", "#555")
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("flex-shrink", "0");
+    corpusFooter.addClassName("m04-corpus-footer");
 
     HorizontalLayout row = new HorizontalLayout(
         upload, pendingChips, ingestButton, corpusFooter);
@@ -322,7 +321,7 @@ public class Module04View
   private void renderPendingChips() {
     pendingChips.removeAll();
     if (pendingFilenames.isEmpty()) {
-      Span empty = new Span("no files queued");
+      Span empty = new Span(getTranslation("m04.chip.empty"));
       empty.addClassName("pending-chip-empty");
       pendingChips.add(empty);
       return;
@@ -330,8 +329,7 @@ public class Module04View
     for (String name : pendingFilenames) {
       Span chip = new Span(name + "  \u00D7");
       chip.addClassName("pending-chip");
-      chip.getElement().setAttribute("title", "Click to remove from queue");
-      chip.getStyle().set("cursor", "pointer");
+      chip.getElement().setAttribute("title", getTranslation("m04.chip.remove.title"));
       chip.addClickListener(e -> {
         pendingFilenames.remove(name);
         renderPendingChips();
@@ -341,9 +339,9 @@ public class Module04View
   }
 
   private Component buildRetrievalControls() {
-    queryField.setWidth("28em");
-    topKField.setWidth("6em");
-    firstStageKField.setWidth("8em");
+    queryField.addClassName("m04-query-field");
+    topKField.addClassName("m04-top-k-field");
+    firstStageKField.addClassName("m04-size-field");
 
     hybridParamsRow.setSpacing(true);
     hybridParamsRow.setAlignItems(FlexComponent.Alignment.START);
@@ -351,10 +349,7 @@ public class Module04View
     rerankerParamsRow.setSpacing(true);
     rerankerParamsRow.setAlignItems(FlexComponent.Alignment.START);
 
-    latencyLabel.getStyle()
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("color", "#555");
+    latencyLabel.addClassName("m04-latency-label");
 
     HorizontalLayout queryRow = new HorizontalLayout(
         queryField,
@@ -364,14 +359,11 @@ public class Module04View
     queryRow.setSpacing(true);
     queryRow.setWidthFull();
 
-    rerankProgress.setWidth("20em");
+    rerankProgress.addClassName("m04-rerank-progress");
     rerankProgress.setMin(0.0);
     rerankProgress.setMax(1.0);
     rerankProgress.setValue(0.0);
-    rerankStatus.getStyle()
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("font-size", "0.85rem")
-        .set("color", "#555");
+    rerankStatus.addClassName("m04-rerank-status");
     progressRow.setAlignItems(FlexComponent.Alignment.CENTER);
     progressRow.setSpacing(true);
     progressRow.add(rerankProgress, rerankStatus);
@@ -408,9 +400,9 @@ public class Module04View
 
   private Component buildResultsZone() {
     resultsGrid.addColumn(new ComponentRenderer<>(this::renderSourcePill))
-        .setHeader("Source").setAutoWidth(true);
+        .setHeader(getTranslation("m04.grid.col.source")).setAutoWidth(true);
     resultsGrid.addColumn(h -> chunkIdFor(h))
-        .setHeader("Chunk id").setAutoWidth(true);
+        .setHeader(getTranslation("m04.grid.col.chunk.id")).setAutoWidth(true);
     // "First-stage score" is hidden by default. It is turned on whenever
     // a reranker is selected, so participants can compare the score the
     // first-stage retriever assigned against the reranked score in the
@@ -418,23 +410,18 @@ public class Module04View
     firstStageScoreColumn = resultsGrid.addColumn(h -> {
       Double fs = firstStageScores.get(h.chunk());
       return (fs == null) ? "--" : String.format(Locale.ROOT, "%.4f", fs);
-    }).setHeader("First-stage score").setAutoWidth(true);
+    }).setHeader(getTranslation("m04.grid.col.first.stage.score")).setAutoWidth(true);
     firstStageScoreColumn.setVisible(false);
     scoreColumn = resultsGrid.addColumn(h -> String.format(Locale.ROOT, "%.4f", h.score()))
-        .setHeader("Score").setAutoWidth(true);
+        .setHeader(getTranslation("m04.grid.col.score")).setAutoWidth(true);
     resultsGrid.addColumn(h ->
             String.valueOf(h.chunk().metadata().getOrDefault(Chunk.HEADING_PATH, "")))
-        .setHeader("Heading path").setAutoWidth(true);
+        .setHeader(getTranslation("m04.grid.col.heading.path")).setAutoWidth(true);
     resultsGrid.addColumn(h -> preview(h.chunk().text(), 120))
-        .setHeader("Preview").setFlexGrow(1);
+        .setHeader(getTranslation("m04.grid.col.preview")).setFlexGrow(1);
     resultsGrid.setAllRowsVisible(false);
     resultsGrid.setWidthFull();
-    // The page scrolls (view is width-only), so the grid gets a generous
-    // fixed height rather than trying to fill remaining flex space. Tall
-    // enough to show around a dozen hits at once without scrolling
-    // inside the grid itself, which is the usual top-k range for M4.
-    resultsGrid.setHeight("38em");
-    resultsGrid.setMinHeight("28em");
+    resultsGrid.addClassName("m04-results-grid");
     return resultsGrid;
   }
 
@@ -456,13 +443,8 @@ public class Module04View
   private Component renderSourcePill(RetrievalHit hit) {
     Span pill = new Span(hit.sourceLabel());
     String colour = SOURCE_COLOURS.getOrDefault(hit.sourceLabel(), "#555");
-    pill.getStyle()
-        .set("background-color", colour)
-        .set("color", "white")
-        .set("font-size", "0.75rem")
-        .set("font-family", "ui-monospace, SFMono-Regular, monospace")
-        .set("padding", "0.15em 0.7em")
-        .set("border-radius", "999px");
+    pill.addClassName("m04-source-pill");
+    pill.getStyle().set("background-color", colour);
     return pill;
   }
 
@@ -492,11 +474,11 @@ public class Module04View
 
   private void onIngest() {
     if (pipeline == null) {
-      Notification.show("Pipeline not initialised yet.");
+      Notification.show(getTranslation("m04.error.not.init"));
       return;
     }
     if (pendingFilenames.isEmpty()) {
-      Notification.show("No files queued. Drop one or more .txt / .md files first.");
+      Notification.show(getTranslation("m04.error.no.files"));
       return;
     }
     FileDocumentLoader loader = new FileDocumentLoader();
@@ -518,7 +500,7 @@ public class Module04View
         processed++;
       } catch (IOException e) {
         logger().warn("Ingest of {} failed: {}", fileName, e.getMessage());
-        Notification.show("Failed to ingest " + fileName + ": " + e.getMessage());
+        Notification.show(getTranslation("m04.error.ingest", fileName, e.getMessage()));
       } finally {
         pendingFilenames.remove(fileName);
         pendingBytes.remove(fileName);
@@ -526,25 +508,25 @@ public class Module04View
     }
     renderPendingChips();
     int added = pipeline.chunkRegistry().size() - before;
-    Notification.show("Ingested " + processed + " documents (" + added + " new chunks).");
+    Notification.show(getTranslation("m04.notify.ingested", processed, added));
     refreshCorpusFooter();
   }
 
   private void refreshCorpusFooter() {
     int chunks = pipeline != null ? pipeline.chunkRegistry().size() : 0;
-    corpusFooter.setText(documentsIngested + " documents, " + chunks + " chunks");
+    corpusFooter.setText(getTranslation("m04.corpus.footer", documentsIngested, chunks));
   }
 
   // ---------- search --------------------------------------------------
 
   private void onSearch() {
     if (pipeline == null) {
-      Notification.show("Pipeline not initialised yet.");
+      Notification.show(getTranslation("m04.error.not.init"));
       return;
     }
     String query = queryField.getValue();
     if (query == null || query.isBlank()) {
-      Notification.show("Enter a query first.");
+      Notification.show(getTranslation("m04.error.query.empty"));
       return;
     }
     int topK = valueOr(topKField, 5);
@@ -562,16 +544,20 @@ public class Module04View
     judgeThinkingPanel.setVisible(false);
     resultsGrid.setItems(List.of());
     firstStageScoreColumn.setVisible(rerankerActive);
-    scoreColumn.setHeader(rerankerActive ? "Reranker score" : "Score");
+    scoreColumn.setHeader(rerankerActive
+        ? getTranslation("m04.grid.col.reranker.score")
+        : getTranslation("m04.grid.col.score"));
     searchButton.setEnabled(false);
-    latencyLabel.setText(rerankerActive ? "reranking..." : "searching...");
+    latencyLabel.setText(rerankerActive
+        ? getTranslation("m04.status.reranking")
+        : getTranslation("m04.status.searching"));
 
     // Progress bar is meaningful for the per-candidate rerank loop.
     // For first-stage-only searches there is nothing to measure
     // incrementally, so the row stays hidden.
     if (rerankerActive) {
       rerankProgress.setValue(0.0);
-      rerankStatus.setText("Retrieving first-stage candidates...");
+      rerankStatus.setText(getTranslation("m04.status.retrieving.candidates"));
       progressRow.setVisible(true);
     } else {
       progressRow.setVisible(false);
@@ -603,7 +589,8 @@ public class Module04View
       ui.access(() -> {
         firstStageScores = fsSnapshot;
         if (rerankerActive) {
-          rerankStatus.setText("Reranking 0 / " + firstStageHits.size());
+          rerankStatus.setText(getTranslation("m04.status.reranking.progress",
+              0, firstStageHits.size()));
         }
       });
 
@@ -621,19 +608,20 @@ public class Module04View
 
       ui.access(() -> {
         resultsGrid.setItems(finalHits);
-        latencyLabel.setText(String.format(Locale.ROOT, "%.2f ms", millis));
+        latencyLabel.setText(getTranslation("m04.latency.format",
+            String.format(Locale.ROOT, "%.2f", millis)));
         if (rerankerActive) {
           rerankProgress.setValue(1.0);
-          rerankStatus.setText("Done (" + finalHits.size() + " hits).");
+          rerankStatus.setText(getTranslation("m04.status.done", finalHits.size()));
         }
         searchButton.setEnabled(true);
       });
     } catch (RuntimeException e) {
       logger().warn("Search failed: {}", e.getMessage(), e);
       ui.access(() -> {
-        Notification.show("Search failed: " + e.getMessage());
-        latencyLabel.setText("error");
-        rerankStatus.setText("error: " + e.getMessage());
+        Notification.show(getTranslation("m04.error.search", e.getMessage()));
+        latencyLabel.setText(getTranslation("m04.status.error"));
+        rerankStatus.setText(getTranslation("m04.status.error.detail", e.getMessage()));
         searchButton.setEnabled(true);
       });
     }
@@ -661,13 +649,13 @@ public class Module04View
         (phase, index, total, hit) -> ui.access(() -> {
           int oneBased = index + 1;
           if (phase == LlmJudgeReranker.Phase.STARTED) {
-            rerankStatus.setText("Evaluating " + oneBased + " / " + total
-                + "  --  " + preview(hit.chunk().text(), 60));
+            rerankStatus.setText(getTranslation("m04.status.evaluating",
+                oneBased, total, preview(hit.chunk().text(), 60)));
             rerankProgress.setValue(((double) index) / total);
           } else {
-            rerankStatus.setText(String.format(Locale.ROOT,
-                "Scored %d / %d  (score %.2f)",
-                oneBased, total, hit.score()));
+            rerankStatus.setText(getTranslation("m04.status.scored",
+                oneBased, total,
+                String.format(Locale.ROOT, "%.2f", hit.score())));
             rerankProgress.setValue(((double) oneBased) / total);
           }
         }));
@@ -692,8 +680,8 @@ public class Module04View
       if (entry.getValue() == null || entry.getValue().isEmpty()) continue;
       Div box = new Div();
       box.addClassName("judge-thinking-entry");
-      Span heading = new Span("thinking for chunk at offset "
-          + entry.getKey().startOffset());
+      Span heading = new Span(getTranslation("m04.judge.thinking.chunk",
+          entry.getKey().startOffset()));
       heading.addClassName("heading");
       box.add(heading, new Span(entry.getValue()));
       judgeThinkingBody.add(box);
@@ -703,7 +691,8 @@ public class Module04View
       judgeThinkingPanel.setVisible(false);
       return;
     }
-    judgeThinkingPanel.setSummaryText("Judge thinking (" + shown + " candidates)");
+    judgeThinkingPanel.setSummaryText(
+        getTranslation("m04.judge.thinking.summary", shown));
     judgeThinkingPanel.setVisible(true);
     judgeThinkingPanel.setOpened(true);
   }
@@ -749,18 +738,18 @@ public class Module04View
 
   // ---------- helpers -----------------------------------------------
 
-  private static IntegerField sizeField(String label, int defaultValue) {
-    IntegerField field = new IntegerField(label);
+  private static IntegerField sizeField(int defaultValue) {
+    IntegerField field = new IntegerField();
     field.setValue(defaultValue);
     field.setMin(1);
-    field.setWidth("8em");
+    field.addClassName("m04-size-field");
     return field;
   }
 
-  private static NumberField doubleField(String label, double defaultValue) {
-    NumberField field = new NumberField(label);
+  private static NumberField doubleField(double defaultValue) {
+    NumberField field = new NumberField();
     field.setValue(defaultValue);
-    field.setWidth("8em");
+    field.addClassName("m04-size-field");
     return field;
   }
 

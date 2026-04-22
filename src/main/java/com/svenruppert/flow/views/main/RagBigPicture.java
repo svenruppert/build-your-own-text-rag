@@ -19,8 +19,7 @@ final class RagBigPicture extends Div {
     addClassName("dashboard-zone");
     setWidthFull();
 
-    Span caption = new Span(
-        "The RAG architecture assembled across six modules — click any step to jump there.");
+    Span caption = new Span(getTranslation("main.diagram.caption"));
     caption.addClassName("dashboard-bigpicture-caption");
 
     add(new RagArchitectureDiagram(), caption);

@@ -11,6 +11,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
@@ -55,6 +56,7 @@ import java.util.Optional;
  * the whole history in place.
  */
 @Route(value = Module01View.PATH, layout = MainLayout.class)
+@CssImport("./styles/module01-view.css")
 // highlight.js colourises fenced code blocks in assistant replies
 // (commonmark emits <pre><code class="language-xxx">). The library,
 // its GitHub theme and a small ES-module loader are bundled under
@@ -72,13 +74,11 @@ public class Module01View
   public static final String PATH = "Module01";
 
   private static final String FALLBACK_MODEL = WorkshopDefaults.DEFAULT_GENERATION_MODEL;
-  private static final String USER_BUBBLE_COLOUR = "#e7f0ff";
-  private static final String ASSISTANT_BUBBLE_COLOUR = "#f3f3f3";
 
   private final LlmClient client;
 
-  private final ComboBox<String> modelSelector = new ComboBox<>("Model");
-  private final Checkbox markdownToggle = new Checkbox("Render Markdown", true);
+  private final ComboBox<String> modelSelector = new ComboBox<>();
+  private final Checkbox markdownToggle = new Checkbox();
   private final TextArea promptField = new TextArea();
   private final VerticalLayout conversation = new VerticalLayout();
   private final HorizontalLayout chips = new HorizontalLayout();
@@ -110,6 +110,10 @@ public class Module01View
   /** Overload kept visible for tests or alternative wiring. */
   public Module01View(LlmClient client) {
     this.client = client;
+    modelSelector.setLabel(getTranslation("m01.model.label"));
+    markdownToggle.setLabel(getTranslation("m01.markdown.label"));
+    markdownToggle.setValue(true);
+
     setSizeFull();
     setPadding(true);
     setSpacing(true);
@@ -134,10 +138,9 @@ public class Module01View
   // ---------- layout --------------------------------------------------
 
   private Component buildHeader() {
-    H3 title = new H3("Module 1 -- Talking to Ollama, naively");
-    Paragraph subtitle = new Paragraph(
-        "Stage 1: ask anything. Stage 2: attach documents and ask again.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m01.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m01.header.subtitle"));
+    subtitle.addClassName("m01-header-subtitle");
     VerticalLayout box = new VerticalLayout(title, subtitle);
     box.setPadding(false);
     box.setSpacing(false);
@@ -147,8 +150,7 @@ public class Module01View
   private Component buildControlsRow() {
     // Model names can be long ("nomic-embed-text-v2-moe", "qwen2.5:7b-instruct-q4_K_M");
     // give the combo a generous fixed width so nothing is truncated.
-    modelSelector.setWidth("24em");
-    modelSelector.setMinWidth("20em");
+    modelSelector.addClassName("m01-model-selector");
 
     // Each control gets a compact "What is this?" help panel directly
     // underneath via withHelp(...); closed state is a single subtle
@@ -182,16 +184,16 @@ public class Module01View
     // Attachment bookkeeping is wired through the UploadHandler in the
     // field initialiser; only the reject listener lives here.
     upload.addFileRejectedListener(event ->
-        Notification.show("Rejected: " + event.getErrorMessage()));
+        Notification.show(getTranslation("m01.upload.rejected", event.getErrorMessage())));
     return upload;
   }
 
   private Component buildInputRow() {
-    promptField.setPlaceholder("Ask a question...");
+    promptField.setPlaceholder(getTranslation("m01.prompt.placeholder"));
     promptField.setWidthFull();
-    promptField.setMinHeight("6em");
-    Button send = new Button("Send", event -> onSend());
-    send.getStyle().set("align-self", "flex-end");
+    promptField.addClassName("m01-prompt-field");
+    Button send = new Button(getTranslation("m01.send"), event -> onSend());
+    send.addClassName("m01-send-button");
     HorizontalLayout row = new HorizontalLayout(promptField, send);
     row.setWidthFull();
     row.setAlignItems(FlexComponent.Alignment.END);
@@ -207,9 +209,7 @@ public class Module01View
       // Either Ollama is not running or no models are pulled.
       // Fall back to a sane default so the UI remains usable.
       names = List.of(FALLBACK_MODEL);
-      Notification.show(
-          "Could not fetch model list from Ollama -- using fallback '"
-              + FALLBACK_MODEL + "'.");
+      Notification.show(getTranslation("m01.model.fallback", FALLBACK_MODEL));
     }
     modelSelector.setItems(names);
     modelSelector.setValue(WorkshopDefaults.preferredGenerationModel(names));
@@ -219,14 +219,8 @@ public class Module01View
     chips.removeAll();
     for (String name : attachments.keySet()) {
       Button chip = new Button(name + "  x");
-      chip.getElement().setAttribute("title", "Click to remove");
-      chip.getStyle()
-          .set("background", "#eef")
-          .set("color", "#224")
-          .set("border-radius", "999px")
-          .set("padding", "0.2em 0.9em")
-          .set("font-size", "0.85rem")
-          .set("cursor", "pointer");
+      chip.getElement().setAttribute("title", getTranslation("m01.chip.remove.title"));
+      chip.addClassName("m01-attachment-chip");
       chip.addClickListener(event -> {
         attachments.remove(name);
         renderChips();
@@ -238,7 +232,7 @@ public class Module01View
   private void onSend() {
     String prompt = promptField.getValue();
     if (prompt == null || prompt.isBlank()) {
-      Notification.show("Type a prompt first.");
+      Notification.show(getTranslation("m01.prompt.empty"));
       return;
     }
     String model = modelSelector.getValue();
@@ -259,7 +253,7 @@ public class Module01View
       renderConversation();
     } else {
       logger().warn("No reply from Ollama for model '{}'", model);
-      Notification.show("No reply from Ollama -- check the server log.");
+      Notification.show(getTranslation("m01.no.reply"));
     }
   }
 
@@ -285,22 +279,19 @@ public class Module01View
    */
   private Component buildBubble(ChatMessage message) {
     Div bubble = new Div();
-    bubble.getStyle()
-        .set("background",
-            message.role() == Role.USER ? USER_BUBBLE_COLOUR : ASSISTANT_BUBBLE_COLOUR)
-        .set("padding", "0.6em 0.9em")
-        .set("border-radius", "0.6em")
-        .set("margin-bottom", "0.3em")
-        .set("max-width", "100%");
+    bubble.addClassNames("m01-bubble",
+        message.role() == Role.USER ? "m01-bubble--user" : "m01-bubble--assistant");
 
-    String authorLabel = (message.role() == Role.USER ? "You" : "Assistant") + ": ";
+    String authorLabel = (message.role() == Role.USER
+        ? getTranslation("m01.role.user")
+        : getTranslation("m01.role.assistant")) + ": ";
 
     boolean renderAsMarkdown =
         message.role() == Role.ASSISTANT && Boolean.TRUE.equals(markdownToggle.getValue());
 
     if (renderAsMarkdown) {
       Span author = new Span(authorLabel);
-      author.getStyle().set("font-weight", "600");
+      author.addClassName("m01-bubble-author");
       // Wrap in a single <div> so Vaadin's Html component sees a single root
       // element, as it requires.
       Component content = MarkdownSupport.htmlDiv(
@@ -311,7 +302,7 @@ public class Module01View
       // Plain-text path: preserve whitespace so participants can still read
       // raw Markdown source when they turn rendering off.
       bubble.setText(authorLabel + message.text());
-      bubble.getStyle().set("white-space", "pre-wrap");
+      bubble.addClassName("m01-bubble--plain");
     }
     return bubble;
   }
@@ -319,11 +310,7 @@ public class Module01View
   private Component buildLatencyLabel(Duration elapsed) {
     double seconds = elapsed.toMillis() / 1000.0;
     Span latency = new Span(String.format(Locale.ROOT, "%.2fs", seconds));
-    latency.getStyle()
-        .set("font-size", "0.75rem")
-        .set("color", "#666")
-        .set("margin-bottom", "0.7em")
-        .set("align-self", "flex-end");
+    latency.addClassName("m01-latency");
     return latency;
   }
 

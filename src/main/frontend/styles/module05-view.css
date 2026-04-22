@@ -1,0 +1,139 @@
+/* Module 05 -- Ask Lab */
+
+.m05-header-subtitle {
+  color: #666;
+  margin-top: -0.4em;
+}
+
+/* --- Ingestion zone (same pattern as Module04) --- */
+.compact-upload {
+  width: 16em;
+}
+
+.compact-upload::part(file-list) {
+  display: none;
+}
+
+.pending-chips {
+  gap: 0.3em;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pending-chip-empty {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.pending-chip {
+  background: #eef;
+  color: #224;
+  border-radius: 999px;
+  padding: 0.2em 0.9em;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.m05-corpus-footer {
+  color: #555;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* --- Ask row --- */
+.m05-query-field {
+  width: 32em;
+}
+
+.m05-model-selector {
+  width: 16em;
+}
+
+.m05-latency-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  color: #555;
+  margin-left: 0.6em;
+}
+
+/* --- Badges --- */
+.badge {
+  display: inline-block;
+  padding: 0.2em 0.75em;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.badge-refusal {
+  background: #ffcccc;
+  color: #990000;
+}
+
+.badge-grounded {
+  background: #c8e6c9;
+  color: #1b5e20;
+}
+
+.badge-partial {
+  background: #fff9c4;
+  color: #827717;
+}
+
+.badge-not-grounded {
+  background: #ffccbc;
+  color: #bf360c;
+}
+
+.badge-unknown {
+  background: #e0e0e0;
+  color: #333;
+}
+
+/* --- Progress row --- */
+.m05-ask-progress {
+  width: 22em;
+}
+
+.m05-ask-status {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+/* --- Main row (answer + sources columns) --- */
+.m05-answer-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.m05-sources-column {
+  flex: 1;
+  min-width: 0;
+  max-width: 28em;
+}
+
+.answer-box {
+  padding: 0.6em 0.9em;
+  border-radius: 0.4em;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  min-height: 4em;
+  width: 100%;
+  line-height: 1.6;
+}
+
+.answer-box.streaming {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+/* --- Size field --- */
+.m05-size-field {
+  width: 7em;
+}

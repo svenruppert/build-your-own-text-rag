@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Chunking Lab -- module 3's user-facing half.
@@ -57,35 +56,6 @@ public class Module03View
       "#e57373", "#81c784", "#64b5f6", "#ffb74d",
       "#ba68c8", "#4dd0e1", "#aed581", "#ff8a65");
 
-  private static final String DEFAULT_TEXT = """
-      # Introduction
-
-      Welcome to the Chunking Lab. Tweak the parameters below, pick a
-      chunker, and watch how the same input becomes a different set of
-      chunks. Overlap zones are visible as denser, coloured regions.
-
-      ## Motivation
-
-      Ingestion is where a surprising amount of retrieval quality is
-      decided. Fixed-size chunking is fast but cuts words and sentences
-      in half. Overlapping chunking keeps boundary-crossing information
-      recoverable. Sentence chunking respects natural phrase limits.
-      Structure-aware chunking aligns chunks with headings so each chunk
-      carries its own breadcrumb path.
-
-      ## Practical tip
-
-      Try the same text with each chunker in turn. Pay attention to the
-      overlap zones in the *Overlapping* tab, then flip to *Sentence*
-      and see how sentence boundaries move the edges around.
-      """;
-
-  private static final Map<String, String> TAB_LABEL = Map.of(
-      "FIXED", "Fixed size",
-      "OVERLAP", "Overlapping",
-      "SENTENCE", "Sentence",
-      "STRUCTURE", "Structure-aware");
-
   // ------- input ------------------------------------------------------
 
   // The built-in label is suppressed; an explicit Span above the
@@ -101,22 +71,22 @@ public class Module03View
   private final Upload upload = new Upload(
       UploadHandler.inMemory((metadata, bytes) -> {
         textArea.setValue(new String(bytes, StandardCharsets.UTF_8));
-        Notification.show("Loaded " + metadata.fileName() + " into the text area.");
+        Notification.show(getTranslation("m03.upload.loaded", metadata.fileName()));
       }));
 
   // ------- tabs and per-tab parameters -------------------------------
 
-  private final Tab tabFixed = new Tab(TAB_LABEL.get("FIXED"));
-  private final Tab tabOverlap = new Tab(TAB_LABEL.get("OVERLAP"));
-  private final Tab tabSentence = new Tab(TAB_LABEL.get("SENTENCE"));
-  private final Tab tabStructure = new Tab(TAB_LABEL.get("STRUCTURE"));
+  private final Tab tabFixed = new Tab();
+  private final Tab tabOverlap = new Tab();
+  private final Tab tabSentence = new Tab();
+  private final Tab tabStructure = new Tab();
   private final Tabs tabs = new Tabs(tabFixed, tabOverlap, tabSentence, tabStructure);
 
-  private final IntegerField fixedSize = sizeField("Chunk size (chars)", 200);
-  private final IntegerField overlapChunkSize = sizeField("Chunk size", 200);
-  private final IntegerField overlapAmount = sizeField("Overlap", 40);
-  private final IntegerField sentenceTarget = sizeField("Target size (chars)", 300);
-  private final IntegerField structureTarget = sizeField("Target size", 400);
+  private final IntegerField fixedSize = sizeField(200);
+  private final IntegerField overlapChunkSize = sizeField(200);
+  private final IntegerField overlapAmount = sizeField(40);
+  private final IntegerField sentenceTarget = sizeField(300);
+  private final IntegerField structureTarget = sizeField(400);
 
   private final VerticalLayout paramsBox = new VerticalLayout();
 
@@ -126,7 +96,7 @@ public class Module03View
   private final VerticalLayout legend = new VerticalLayout();
 
   /** Last computed statistics line; shown on demand via the stats dialog. */
-  private String lastStatsText = "Run 'Chunk it' to populate statistics.";
+  private String lastStatsText;
 
   // ------- state ------------------------------------------------------
 
@@ -142,6 +112,21 @@ public class Module03View
   // ------- view -------------------------------------------------------
 
   public Module03View() {
+    // Set tab labels
+    tabFixed.add(new Span(getTranslation("m03.tab.fixed")));
+    tabOverlap.add(new Span(getTranslation("m03.tab.overlap")));
+    tabSentence.add(new Span(getTranslation("m03.tab.sentence")));
+    tabStructure.add(new Span(getTranslation("m03.tab.structure")));
+
+    // Set size field labels
+    fixedSize.setLabel(getTranslation("m03.field.chunk.size.chars"));
+    overlapChunkSize.setLabel(getTranslation("m03.field.chunk.size"));
+    overlapAmount.setLabel(getTranslation("m03.field.overlap"));
+    sentenceTarget.setLabel(getTranslation("m03.field.target.size.chars"));
+    structureTarget.setLabel(getTranslation("m03.field.target.size"));
+
+    lastStatsText = getTranslation("m03.stats.empty");
+
     setSizeFull();
     setPadding(true);
     setSpacing(true);
@@ -157,7 +142,7 @@ public class Module03View
     add(legend);
     add(buildMainPanelsRow());
 
-    textArea.setValue(DEFAULT_TEXT);
+    textArea.setValue(getTranslation("m03.default.text"));
 
     tabs.addSelectedChangeListener(event -> renderParams());
     renderParams();
@@ -182,12 +167,9 @@ public class Module03View
   }
 
   private Component buildHeader() {
-    H3 title = new H3("Module 3 -- Chunking Lab");
-    Paragraph subtitle = new Paragraph(
-        "Four chunkers against the same text. Overlap zones show as visually "
-            + "denser, coloured regions. Click an entry in the legend to highlight "
-            + "that chunk in the text above.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m03.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m03.header.subtitle"));
+    subtitle.addClassName("m03-header-subtitle");
     VerticalLayout box = new VerticalLayout(title, subtitle);
     box.setPadding(false);
     box.setSpacing(false);
@@ -201,7 +183,7 @@ public class Module03View
   private Component buildUploadRow() {
     upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
     upload.setMaxFiles(1);
-    upload.setDropLabel(new Span("Drop a .txt or .md file here"));
+    upload.setDropLabel(new Span(getTranslation("m03.upload.drop")));
     // Ingestion is wired through the UploadHandler in the field
     // initialiser -- no listener needed here.
 
@@ -217,13 +199,11 @@ public class Module03View
    * horizontal row right above the two panels they act on.
    */
   private Component buildParamsAndActionRow() {
-    Button chunkIt = new Button("Chunk it", event -> onChunk());
-    chunkIt.setMinWidth("8em");
-    chunkIt.getStyle().set("flex-shrink", "0");
+    Button chunkIt = new Button(getTranslation("m03.button.chunk"), event -> onChunk());
+    chunkIt.addClassName("m03-chunk-button");
 
-    Button statsButton = new Button("Show statistics", event -> openStatsDialog());
-    statsButton.setMinWidth("10em");
-    statsButton.getStyle().set("flex-shrink", "0");
+    Button statsButton = new Button(getTranslation("m03.button.stats"), event -> openStatsDialog());
+    statsButton.addClassName("m03-stats-button");
 
     HorizontalLayout row = new HorizontalLayout(paramsBox, chunkIt, statsButton);
     row.setAlignItems(FlexComponent.Alignment.END);
@@ -245,16 +225,14 @@ public class Module03View
     textArea.addClassName("chunk-lab-doc");
     textArea.setSizeFull();
 
-    Span leftCaption = new Span("Document text");
+    Span leftCaption = new Span(getTranslation("m03.caption.document"));
     leftCaption.addClassName("panel-caption");
 
     Div leftPanel = new Div(leftCaption, textArea);
     leftPanel.addClassName("chunk-lab-panel");
 
     // Right column: caption + viz wrapper containing the Html.
-    Span rightCaption = new Span(
-        "Chunk visualisation -- coloured per chunk; denser regions "
-            + "indicate overlap");
+    Span rightCaption = new Span(getTranslation("m03.caption.viz"));
     rightCaption.addClassName("panel-caption");
 
     Div vizWrapper = new Div(visualisation);
@@ -265,7 +243,7 @@ public class Module03View
 
     HorizontalLayout row = new HorizontalLayout(leftPanel, rightPanel);
     row.setWidthFull();
-    row.setHeight("34em");
+    row.addClassName("m03-main-panels-row");
     row.setAlignItems(FlexComponent.Alignment.STRETCH);
     row.setSpacing(true);
     return row;
@@ -274,20 +252,20 @@ public class Module03View
   /** Opens a small dialog with the chunk statistics of the latest run. */
   private void openStatsDialog() {
     Dialog dialog = new Dialog();
-    dialog.setHeaderTitle("Chunk statistics");
+    dialog.setHeaderTitle(getTranslation("m03.dialog.stats.title"));
     Paragraph body = new Paragraph(lastStatsText);
-    body.getStyle().set("white-space", "pre-wrap").set("margin", "0");
+    body.addClassName("m03-stats-body");
     dialog.add(body);
-    Button close = new Button("Close", e -> dialog.close());
+    Button close = new Button(getTranslation("m03.button.close"), e -> dialog.close());
     dialog.getFooter().add(close);
     dialog.open();
   }
 
-  private static IntegerField sizeField(String label, int defaultValue) {
-    IntegerField field = new IntegerField(label);
+  private static IntegerField sizeField(int defaultValue) {
+    IntegerField field = new IntegerField();
     field.setValue(defaultValue);
     field.setMin(1);
-    field.setWidth("9em");
+    field.addClassName("m03-size-field");
     return field;
   }
 
@@ -348,7 +326,7 @@ public class Module03View
     String canonical = extraction.canonicalText();
 
     if (canonical.isEmpty()) {
-      Notification.show("Please enter some text first.");
+      Notification.show(getTranslation("m03.notify.empty"));
       return;
     }
 
@@ -370,7 +348,7 @@ public class Module03View
         throw new IllegalStateException("no tab selected");
       }
     } catch (IllegalArgumentException e) {
-      Notification.show("Invalid parameter: " + e.getMessage());
+      Notification.show(getTranslation("m03.notify.invalid.param", e.getMessage()));
       return;
     }
 
@@ -397,7 +375,7 @@ public class Module03View
    */
   private void updateStats(List<Chunk> chunks, String canonical) {
     if (chunks.isEmpty()) {
-      lastStatsText = "0 chunks generated.";
+      lastStatsText = getTranslation("m03.stats.zero");
       return;
     }
     int totalChars = chunks.stream().mapToInt(c -> c.endOffset() - c.startOffset()).sum();
@@ -411,9 +389,11 @@ public class Module03View
     int overlapChars = 0;
     for (int c : coverage) if (c > 1) overlapChars++;
 
-    lastStatsText = String.format(Locale.ROOT,
-        "Chunks: %d%nTotal coverage: %,d chars%nMean chunk size: %.1f chars%nOverlap regions: %,d chars",
-        chunks.size(), totalChars, meanChars, overlapChars);
+    lastStatsText = getTranslation("m03.stats.format",
+        chunks.size(),
+        totalChars,
+        String.format(Locale.ROOT, "%.1f", meanChars),
+        overlapChars);
   }
 
   // ---------- visualisation ------------------------------------------
@@ -473,7 +453,7 @@ public class Module03View
   private String styleFor(List<Integer> owners) {
     if (owners.isEmpty()) return "";
     if (owners.size() == 1) {
-      int idx = owners.get(0);
+      int idx = owners.getFirst();
       double alpha = (idx == focusedChunk) ? 0.40 : 0.15;
       return "background-color:" + rgba(colourFor(idx), alpha) + ";";
     }
@@ -510,9 +490,9 @@ public class Module03View
 
     if (lastChunks.isEmpty()) return;
 
-    Span heading = new Span("Chunks (" + lastChunks.size() + ")");
+    Span heading = new Span(getTranslation("m03.legend.heading", lastChunks.size()));
     heading.addClassName("panel-caption");
-    heading.getStyle().set("margin-bottom", "0").set("margin-right", "0.75em");
+    heading.addClassName("m03-legend-heading");
 
     Div chipTrack = new Div();
     chipTrack.addClassName("chunk-chip-track");
@@ -522,10 +502,10 @@ public class Module03View
 
     HorizontalLayout row = new HorizontalLayout(heading, chipTrack);
     row.setWidthFull();
+    row.addClassName("m03-legend-row");
     row.setAlignItems(FlexComponent.Alignment.CENTER);
     row.setSpacing(false);
     row.setFlexGrow(1, chipTrack);
-    row.getStyle().set("min-width", "0");
     legend.add(row);
   }
 
@@ -533,21 +513,16 @@ public class Module03View
     boolean focused = (focusedChunk == c.index());
     Button chip = new Button(String.valueOf(c.index()));
     chip.addClassName("chunk-chip");
-    chip.getStyle()
-        .set("background-color", rgba(colourFor(c.index()), focused ? 0.75 : 0.35))
-        .set("color", "#222")
-        .set("border", focused ? "1.5px solid #333" : "1px solid #ccc")
-        .set("font-weight", focused ? "600" : "500");
+    if (focused) chip.addClassName("chunk-chip--focused");
+    chip.getStyle().set("background-color", rgba(colourFor(c.index()), focused ? 0.75 : 0.35));
 
-    StringBuilder tip = new StringBuilder();
-    tip.append("Chunk ").append(c.index())
-        .append("  .  offsets ").append(c.startOffset())
-        .append('-').append(c.endOffset())
-        .append("  .  ").append(c.endOffset() - c.startOffset()).append(" chars");
+    String tip = getTranslation("m03.chip.tooltip",
+        c.index(), c.startOffset(), c.endOffset(),
+        c.endOffset() - c.startOffset());
     if (c.metadata().containsKey(Chunk.HEADING_PATH)) {
-      tip.append("\n").append(c.metadata().get(Chunk.HEADING_PATH));
+      tip += "\n" + c.metadata().get(Chunk.HEADING_PATH);
     }
-    chip.setTooltipText(tip.toString());
+    chip.setTooltipText(tip);
 
     int targetIndex = c.index();
     chip.addClickListener(click -> {

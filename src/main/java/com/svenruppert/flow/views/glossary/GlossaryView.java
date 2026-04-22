@@ -59,8 +59,8 @@ public class GlossaryView
     add(buildHeader(parsed.introHtml()));
 
     if (parsed.entries().isEmpty()) {
-      Paragraph unavailable = new Paragraph("Glossary content unavailable.");
-      unavailable.getStyle().set("color", "var(--lumo-secondary-text-color)");
+      Paragraph unavailable = new Paragraph(getTranslation("glossary.unavailable"));
+      unavailable.addClassName("glossary-unavailable");
       add(unavailable);
       add(buildFooter());
       return;
@@ -89,16 +89,13 @@ public class GlossaryView
     box.setPadding(false);
     box.setSpacing(false);
 
-    H1 heading = new H1("Glossary");
-    heading.getStyle().set("margin", "0 0 var(--lumo-space-s) 0");
+    H1 heading = new H1(getTranslation("glossary.heading"));
+    heading.addClassName("glossary-heading");
     box.add(heading);
 
     if (introHtml != null && !introHtml.isBlank()) {
       Div intro = new Div();
-      intro.getStyle()
-          .set("color", "var(--lumo-secondary-text-color)")
-          .set("max-width", "640px")
-          .set("line-height", "1.55");
+      intro.addClassName("glossary-intro");
       intro.add(new Html("<div>" + introHtml + "</div>"));
       box.add(intro);
     }
@@ -115,16 +112,13 @@ public class GlossaryView
     letterNav.addClassName("glossary-letter-nav");
     box.add(letterNav);
 
-    searchField.setPlaceholder("Filter terms...");
+    searchField.setPlaceholder(getTranslation("glossary.filter.placeholder"));
     searchField.setClearButtonVisible(true);
     searchField.setWidthFull();
     searchField.setValueChangeMode(ValueChangeMode.EAGER);
     searchField.addValueChangeListener(e -> applyFilter(e.getValue()));
 
-    counterLabel.getStyle()
-        .set("color", "var(--lumo-secondary-text-color)")
-        .set("font-size", "0.9rem")
-        .set("white-space", "nowrap");
+    counterLabel.addClassName("glossary-counter");
 
     HorizontalLayout row = new HorizontalLayout(searchField, counterLabel);
     row.setWidthFull();
@@ -153,22 +147,14 @@ public class GlossaryView
     box.setPadding(false);
     box.setSpacing(false);
 
-    H2 conceptsHeading = new H2("Concepts");
-    styleSectionHeading(conceptsHeading);
+    H2 conceptsHeading = new H2(getTranslation("glossary.section.concepts"));
+    conceptsHeading.addClassName("glossary-section-heading");
     box.add(conceptsHeading, conceptsBlock);
 
-    H2 toolsHeading = new H2("Tools");
-    styleSectionHeading(toolsHeading);
+    H2 toolsHeading = new H2(getTranslation("glossary.section.tools"));
+    toolsHeading.addClassName("glossary-section-heading");
     box.add(toolsHeading, toolsBlock);
     return box;
-  }
-
-  private void styleSectionHeading(H2 h) {
-    h.getStyle()
-        .set("font-size", "1.3rem")
-        .set("font-weight", "600")
-        .set("margin", "var(--lumo-space-l) 0 var(--lumo-space-s) 0")
-        .set("color", "var(--lumo-primary-text-color)");
   }
 
   /**
@@ -211,18 +197,14 @@ public class GlossaryView
 
   private void updateCounter() {
     long shown = cards.stream().filter(Component::isVisible).count();
-    counterLabel.setText(shown + " of " + cards.size() + " terms shown");
+    counterLabel.setText(getTranslation("glossary.counter", shown, cards.size()));
   }
 
   // ---------- zone 4: footer ----------------------------------------
 
   private Component buildFooter() {
-    Paragraph footer = new Paragraph(
-        "Thirty terms. Workshop: Building Secure, Self-Hosted RAG Systems in Java.");
-    footer.getStyle()
-        .set("color", "var(--lumo-tertiary-text-color)")
-        .set("font-size", "0.85rem")
-        .set("margin-top", "var(--lumo-space-l)");
+    Paragraph footer = new Paragraph(getTranslation("glossary.footer"));
+    footer.addClassName("glossary-footer");
     return footer;
   }
 }

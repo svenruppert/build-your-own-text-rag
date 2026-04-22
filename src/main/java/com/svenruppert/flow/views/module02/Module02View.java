@@ -14,6 +14,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
@@ -59,6 +60,7 @@ import java.util.stream.Stream;
  * is a separate concern discussed in the workshop's closing block.
  */
 @Route(value = Module02View.PATH, layout = MainLayout.class)
+@CssImport("./styles/module02-view.css")
 public class Module02View
     extends VerticalLayout
     implements HasLogger {
@@ -70,14 +72,14 @@ public class Module02View
 
   private final LlmClient llmClient;
 
-  private final ComboBox<String> modelSelector = new ComboBox<>("Embedding model");
+  private final ComboBox<String> modelSelector = new ComboBox<>();
   private final RadioButtonGroup<StoreChoice> activeStoreToggle = new RadioButtonGroup<>();
-  private final TextField addTextField = new TextField("Text to embed");
-  private final TextField addIdField = new TextField("Id (optional -- auto if empty)");
-  private final TextField addPayloadField = new TextField("Payload (optional)");
-  private final TextArea bulkField = new TextArea("Bulk add -- one text per line");
-  private final TextField queryField = new TextField("Query text");
-  private final IntegerField topKField = new IntegerField("Top k");
+  private final TextField addTextField = new TextField();
+  private final TextField addIdField = new TextField();
+  private final TextField addPayloadField = new TextField();
+  private final TextArea bulkField = new TextArea();
+  private final TextField queryField = new TextField();
+  private final IntegerField topKField = new IntegerField();
   private final Grid<SearchHit> hitsGrid = new Grid<>(SearchHit.class, false);
   private final Span timingLabel = new Span();
   private final Span sizeFooter = new Span();
@@ -92,6 +94,15 @@ public class Module02View
 
   public Module02View(LlmClient llmClient) {
     this.llmClient = llmClient;
+
+    modelSelector.setLabel(getTranslation("m02.model.label"));
+    addTextField.setLabel(getTranslation("m02.add.text.label"));
+    addIdField.setLabel(getTranslation("m02.add.id.label"));
+    addPayloadField.setLabel(getTranslation("m02.add.payload.label"));
+    bulkField.setLabel(getTranslation("m02.bulk.label"));
+    queryField.setLabel(getTranslation("m02.query.label"));
+    topKField.setLabel(getTranslation("m02.topk.label"));
+    sizeFooter.addClassName("m02-size-footer");
 
     // setSizeFull() would pin this view to the viewport height, so
     // anything past the bottom gets clipped instead of scrolling. Width
@@ -111,7 +122,7 @@ public class Module02View
     topKField.setMin(1);
 
     activeStoreToggle.setItems(StoreChoice.IN_MEMORY, StoreChoice.JVECTOR);
-    activeStoreToggle.setItemLabelGenerator(StoreChoice::label);
+    activeStoreToggle.setItemLabelGenerator(choice -> getTranslation(choice.labelKey()));
     activeStoreToggle.setValue(StoreChoice.IN_MEMORY);
     activeStoreToggle.addValueChangeListener(event -> refreshSizeFooter());
   }
@@ -128,7 +139,7 @@ public class Module02View
       this.inMemoryStore = new InMemoryVectorStore(new DefaultSimilarity());
     } catch (IOException e) {
       logger().error("Could not create temp directory for EclipseStoreJVectorStore", e);
-      Notification.show("Could not create temporary storage: " + e.getMessage());
+      Notification.show(getTranslation("m02.error.storage", e.getMessage()));
     }
     populateModels();
     refreshSizeFooter();
@@ -152,12 +163,9 @@ public class Module02View
   // ---------- layout --------------------------------------------------
 
   private Component buildHeader() {
-    H3 title = new H3("Module 2 -- Vector Store Lab");
-    Paragraph subtitle = new Paragraph(
-        "Swap the implementation at runtime -- the contract is identical. "
-            + "Both stores are populated in lock-step so the toggle always "
-            + "points at the same data. Timings are measured on both.");
-    subtitle.getStyle().set("color", "#666").set("margin-top", "-0.4em");
+    H3 title = new H3(getTranslation("m02.header.title"));
+    Paragraph subtitle = new Paragraph(getTranslation("m02.header.subtitle"));
+    subtitle.addClassName("m02-header-subtitle");
     VerticalLayout box = new VerticalLayout(title, subtitle);
     box.setPadding(false);
     box.setSpacing(false);
@@ -165,9 +173,8 @@ public class Module02View
   }
 
   private Component buildControlsRow() {
-    modelSelector.setWidth("22em");
-    modelSelector.setMinWidth("18em");
-    activeStoreToggle.getStyle().set("margin-left", "1em");
+    modelSelector.addClassName("m02-model-selector");
+    activeStoreToggle.addClassName("m02-store-toggle");
 
     HorizontalLayout row = new HorizontalLayout(
         withHelp(modelSelector, ParameterDocs.M2_EMBEDDING_MODEL),
@@ -192,11 +199,11 @@ public class Module02View
   }
 
   private Component buildAddRow() {
-    addTextField.setWidth("22em");
-    addIdField.setWidth("14em");
-    addPayloadField.setWidth("14em");
+    addTextField.addClassName("m02-add-text-field");
+    addIdField.addClassName("m02-add-id-field");
+    addPayloadField.addClassName("m02-add-payload-field");
 
-    Button addButton = new Button("Add to both stores", event -> onAdd());
+    Button addButton = new Button(getTranslation("m02.add.button"), event -> onAdd());
 
     // ID and payload get inline help because participants routinely
     // guess at them; the text field is self-explanatory and stays bare.
@@ -214,18 +221,12 @@ public class Module02View
     // auto-generated id and the line text as payload. Much faster
     // than round-tripping the single-row form for every example.
     bulkField.setWidthFull();
-    bulkField.setMinHeight("10em");
-    bulkField.setPlaceholder(
-        "Paste or type multiple texts, one per line -- each line becomes its own entry."
-            + "\n\nExample:"
-            + "\nEclipseStore persists Java object graphs without an ORM."
-            + "\nJVector is an HNSW index library written in Java."
-            + "\nOllama serves local models through a small HTTP API.");
-    bulkField.setHelperText(
-        "Empty lines are skipped. Id is auto-generated; payload equals the line text.");
+    bulkField.addClassName("m02-bulk-field");
+    bulkField.setPlaceholder(getTranslation("m02.bulk.placeholder"));
+    bulkField.setHelperText(getTranslation("m02.bulk.helper"));
 
-    Button bulkAddButton = new Button("Add all lines", event -> onBulkAdd());
-    Button clearBulkButton = new Button("Clear", event -> bulkField.clear());
+    Button bulkAddButton = new Button(getTranslation("m02.bulk.add.button"), event -> onBulkAdd());
+    Button clearBulkButton = new Button(getTranslation("m02.bulk.clear.button"), event -> bulkField.clear());
 
     HorizontalLayout bulkButtonRow = new HorizontalLayout(bulkAddButton, clearBulkButton);
     bulkButtonRow.setSpacing(true);
@@ -235,16 +236,11 @@ public class Module02View
     // Visible section divider + heading so the bulk area is obviously
     // a second, separate input path rather than an optional footer
     // hidden off-screen.
-    Span sectionTitle = new Span("Bulk add -- one entry per line");
-    sectionTitle.getStyle()
-        .set("font-weight", "600")
-        .set("color", "var(--lumo-secondary-text-color)")
-        .set("font-size", "0.95rem");
+    Span sectionTitle = new Span(getTranslation("m02.bulk.section.title"));
+    sectionTitle.addClassName("m02-section-title");
+
     Div divider = new Div();
-    divider.getStyle()
-        .set("border-top", "1px solid var(--lumo-contrast-10pct)")
-        .set("margin", "var(--lumo-space-m) 0 var(--lumo-space-xs) 0")
-        .set("width", "100%");
+    divider.addClassName("m02-section-divider");
 
     VerticalLayout bulkBox = new VerticalLayout(
         divider, sectionTitle, bulkField, bulkButtonRow);
@@ -260,10 +256,10 @@ public class Module02View
   }
 
   private Component buildQueryRow() {
-    queryField.setWidth("28em");
-    topKField.setWidth("6em");
+    queryField.addClassName("m02-query-field");
+    topKField.addClassName("m02-top-k-field");
 
-    Button searchButton = new Button("Search", event -> onSearch());
+    Button searchButton = new Button(getTranslation("m02.search.button"), event -> onSearch());
 
     HorizontalLayout row = new HorizontalLayout(
         queryField,
@@ -276,17 +272,14 @@ public class Module02View
   }
 
   private Component buildResultsSection() {
-    hitsGrid.addColumn(SearchHit::id).setHeader("Id").setAutoWidth(true);
+    hitsGrid.addColumn(SearchHit::id).setHeader(getTranslation("m02.grid.col.id")).setAutoWidth(true);
     hitsGrid.addColumn(h -> String.format(Locale.ROOT, "%.4f", h.score()))
-        .setHeader("Score").setAutoWidth(true);
-    hitsGrid.addColumn(SearchHit::payload).setHeader("Payload").setFlexGrow(1);
+        .setHeader(getTranslation("m02.grid.col.score")).setAutoWidth(true);
+    hitsGrid.addColumn(SearchHit::payload).setHeader(getTranslation("m02.grid.col.payload")).setFlexGrow(1);
     hitsGrid.setAllRowsVisible(true);
     hitsGrid.setWidthFull();
 
-    timingLabel.getStyle()
-        .set("color", "#555")
-        .set("font-size", "0.85rem")
-        .set("font-family", "monospace");
+    timingLabel.addClassName("m02-timing-label");
 
     VerticalLayout box = new VerticalLayout(hitsGrid, timingLabel);
     box.setPadding(false);
@@ -301,9 +294,7 @@ public class Module02View
     List<String> names = llmClient.listModels().orElse(List.of());
     if (names.isEmpty()) {
       names = List.of(FALLBACK_EMBEDDING_MODEL);
-      Notification.show(
-          "Could not fetch model list from Ollama -- using fallback '"
-              + FALLBACK_EMBEDDING_MODEL + "'.");
+      Notification.show(getTranslation("m02.model.fallback", FALLBACK_EMBEDDING_MODEL));
     }
     modelSelector.setItems(names);
     modelSelector.setValue(WorkshopDefaults.preferredEmbeddingModel(names));
@@ -311,18 +302,18 @@ public class Module02View
 
   private void onAdd() {
     if (inMemoryStore == null || jvectorStore == null) {
-      Notification.show("Stores are not initialised yet.");
+      Notification.show(getTranslation("m02.error.not.init"));
       return;
     }
     String text = addTextField.getValue();
     if (text == null || text.isBlank()) {
-      Notification.show("Enter some text to embed first.");
+      Notification.show(getTranslation("m02.add.empty"));
       return;
     }
     String model = resolveModel();
     Optional<float[]> maybeVec = llmClient.embed(text, model);
     if (maybeVec.isEmpty()) {
-      Notification.show("Embedding failed -- see the server log.");
+      Notification.show(getTranslation("m02.embed.failed"));
       return;
     }
     float[] vector = maybeVec.get();
@@ -336,8 +327,7 @@ public class Module02View
     } catch (IllegalArgumentException e) {
       // Mixed dimensions: the stores reject the add because the corpus
       // already uses a different embedding model. Guide the user.
-      Notification.show("Rejected: " + e.getMessage()
-          + " (did you change the embedding model?)");
+      Notification.show(getTranslation("m02.add.rejected", e.getMessage()));
       return;
     }
 
@@ -355,12 +345,12 @@ public class Module02View
    */
   private void onBulkAdd() {
     if (inMemoryStore == null || jvectorStore == null) {
-      Notification.show("Stores are not initialised yet.");
+      Notification.show(getTranslation("m02.error.not.init"));
       return;
     }
     String raw = bulkField.getValue();
     if (raw == null || raw.isBlank()) {
-      Notification.show("Enter at least one line to embed first.");
+      Notification.show(getTranslation("m02.bulk.empty"));
       return;
     }
     List<String> lines = raw.lines()
@@ -368,7 +358,7 @@ public class Module02View
         .filter(s -> !s.isEmpty())
         .toList();
     if (lines.isEmpty()) {
-      Notification.show("All lines were blank.");
+      Notification.show(getTranslation("m02.bulk.all.blank"));
       return;
     }
 
@@ -397,12 +387,12 @@ public class Module02View
       }
     }
 
-    StringBuilder msg = new StringBuilder("Bulk add: ")
-        .append(added).append(" added");
-    if (embedFailed > 0) msg.append(", ").append(embedFailed).append(" embed-failed");
-    if (rejected > 0) msg.append(", ").append(rejected)
-        .append(" rejected (dimension clash -- stopped early)");
-    Notification.show(msg.toString());
+    String addedPart = getTranslation("m02.bulk.added", added);
+    String failedPart = embedFailed > 0
+        ? ", " + getTranslation("m02.bulk.embed.failed", embedFailed) : "";
+    String rejectedPart = rejected > 0
+        ? ", " + getTranslation("m02.bulk.rejected", rejected) : "";
+    Notification.show(getTranslation("m02.bulk.prefix") + ": " + addedPart + failedPart + rejectedPart);
 
     if (added > 0 && embedFailed == 0 && rejected == 0) {
       bulkField.clear();
@@ -412,12 +402,12 @@ public class Module02View
 
   private void onSearch() {
     if (inMemoryStore == null || jvectorStore == null) {
-      Notification.show("Stores are not initialised yet.");
+      Notification.show(getTranslation("m02.error.not.init"));
       return;
     }
     String text = queryField.getValue();
     if (text == null || text.isBlank()) {
-      Notification.show("Enter a query first.");
+      Notification.show(getTranslation("m02.query.empty"));
       return;
     }
     Integer k = topKField.getValue();
@@ -426,7 +416,7 @@ public class Module02View
     String model = resolveModel();
     Optional<float[]> maybeVec = llmClient.embed(text, model);
     if (maybeVec.isEmpty()) {
-      Notification.show("Query embedding failed -- see the server log.");
+      Notification.show(getTranslation("m02.query.embed.failed"));
       return;
     }
     float[] query = maybeVec.get();
@@ -437,7 +427,7 @@ public class Module02View
     try {
       inMemoryHits = inMemoryStore.search(query, k);
     } catch (IllegalArgumentException e) {
-      Notification.show("InMemory search rejected: " + e.getMessage());
+      Notification.show(getTranslation("m02.search.rejected.inmemory", e.getMessage()));
       return;
     }
     long t1 = System.nanoTime();
@@ -445,7 +435,7 @@ public class Module02View
     try {
       jvectorHits = jvectorStore.search(query, k);
     } catch (IllegalArgumentException e) {
-      Notification.show("JVector search rejected: " + e.getMessage());
+      Notification.show(getTranslation("m02.search.rejected.jvector", e.getMessage()));
       return;
     }
     long t2 = System.nanoTime();
@@ -460,20 +450,16 @@ public class Module02View
         .toList();
     hitsGrid.setItems(shown);
 
-    timingLabel.setText(String.format(Locale.ROOT,
-        "InMemory: %.2f ms  .  JVector: %.2f ms  .  showing %s",
-        inMemMillis, jvectorMillis, active.label()));
+    timingLabel.setText(getTranslation("m02.timing.label",
+        String.format(Locale.ROOT, "%.2f", inMemMillis),
+        String.format(Locale.ROOT, "%.2f", jvectorMillis),
+        getTranslation(active.labelKey())));
   }
 
   private void refreshSizeFooter() {
     int inMemSize = inMemoryStore != null ? inMemoryStore.size() : 0;
     int jvSize = jvectorStore != null ? jvectorStore.size() : 0;
-    sizeFooter.setText(String.format(Locale.ROOT,
-        "Size: InMemory=%d  .  JVector=%d", inMemSize, jvSize));
-    sizeFooter.getStyle()
-        .set("color", "#555")
-        .set("font-size", "0.85rem")
-        .set("font-family", "monospace");
+    sizeFooter.setText(getTranslation("m02.size.footer", inMemSize, jvSize));
   }
 
   private String resolveModel() {
@@ -506,17 +492,17 @@ public class Module02View
 
   /** Which store backs the "shown" grid. Both stores are always live. */
   private enum StoreChoice {
-    IN_MEMORY("InMemoryVectorStore"),
-    JVECTOR("EclipseStoreJVectorStore");
+    IN_MEMORY("m02.store.inmemory"),
+    JVECTOR("m02.store.jvector");
 
-    private final String label;
+    private final String labelKey;
 
-    StoreChoice(String label) {
-      this.label = label;
+    StoreChoice(String labelKey) {
+      this.labelKey = labelKey;
     }
 
-    String label() {
-      return label;
+    String labelKey() {
+      return labelKey;
     }
   }
 }

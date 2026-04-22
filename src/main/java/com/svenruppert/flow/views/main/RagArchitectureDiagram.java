@@ -23,8 +23,7 @@ final class RagArchitectureDiagram extends Div {
   RagArchitectureDiagram() {
     addClassName("rag-architecture");
     getElement().setAttribute("role", "img");
-    getElement().setAttribute("aria-label",
-        "RAG architecture inside a single JVM, showing indexing, vector storage and query flow.");
+    getElement().setAttribute("aria-label", getTranslation("main.diagram.aria"));
 
     add(
         band("rag-architecture__band--top"),
@@ -32,13 +31,13 @@ final class RagArchitectureDiagram extends Div {
         zoneBar("rag-architecture__zone-bar--top"),
         zoneBar("rag-architecture__zone-bar--bottom"),
         zoneLabel(
-            "INDEXING TIME",
-            "Offline · documents become searchable vectors",
+            getTranslation("main.diagram.indexing.title"),
+            getTranslation("main.diagram.indexing.subtitle"),
             "rag-architecture__zone-label--top",
             "rag-architecture__zone-title--top"),
         zoneLabel(
-            "QUERY TIME",
-            "Online · a question becomes a grounded answer",
+            getTranslation("main.diagram.query.title"),
+            getTranslation("main.diagram.query.subtitle"),
             "rag-architecture__zone-label--bottom",
             "rag-architecture__zone-title--bottom"),
         jvmLabel(),
@@ -46,15 +45,18 @@ final class RagArchitectureDiagram extends Div {
         // Indexing row: 3 nodes × 14% width, arrows of 3% each.
         // Embedder is centered at 50 % to align with the arrow-down
         // to the Vector Store (left=43 % + 7 % = 50 %).
-        node("Documents", "PDF · Markdown · Text",
+        node(getTranslation("main.diagram.node.documents"),
+            getTranslation("main.diagram.node.documents.sub"),
             "rag-architecture__node--indexing",
             "7%", "23.333%", "14%", "8.889%",
             Module03View.PATH),
-        node("Chunker", "split into passages",
+        node(getTranslation("main.diagram.node.chunker"),
+            getTranslation("main.diagram.node.chunker.sub"),
             "rag-architecture__node--indexing",
             "25%", "23.333%", "14%", "8.889%",
             Module03View.PATH),
-        node("Embedder", "Ollama · nomic-embed",
+        node(getTranslation("main.diagram.node.embedder"),
+            getTranslation("main.diagram.node.embedder.sub"),
             "rag-architecture__node--indexing",
             "43%", "23.333%", "14%", "8.889%",
             Module02View.PATH),
@@ -73,31 +75,37 @@ final class RagArchitectureDiagram extends Div {
             "41.5%", "59.111%", "18.889%"),
         dashedArrow("rag-architecture__arrow-dashed--down",
             "42.8%", "59.111%", "18.889%"),
-        flowLabel("query vector", "rag-architecture__flow-label--left"),
-        flowLabel("top-k chunks", "rag-architecture__flow-label--right"),
+        flowLabel(getTranslation("main.diagram.flow.query"), "rag-architecture__flow-label--left"),
+        flowLabel(getTranslation("main.diagram.flow.chunks"), "rag-architecture__flow-label--right"),
 
         // Query row: 6 nodes × 14% width, arrows of 1.5% each.
-        node("Query", "user question",
+        node(getTranslation("main.diagram.node.query"),
+            getTranslation("main.diagram.node.query.sub"),
             "rag-architecture__node--query",
             "2%", "78.889%", "14%", "8.889%",
             Module05View.PATH),
-        node("Embedder", "Ollama · nomic-embed",
+        node(getTranslation("main.diagram.node.embedder"),
+            getTranslation("main.diagram.node.embedder.sub"),
             "rag-architecture__node--query",
             "18.5%", "78.889%", "14%", "8.889%",
             Module02View.PATH),
-        node("Retrieve", "top-k nearest",
+        node(getTranslation("main.diagram.node.retrieve"),
+            getTranslation("main.diagram.node.retrieve.sub"),
             "rag-architecture__node--query",
             "35%", "78.889%", "14%", "8.889%",
             Module04View.PATH),
-        node("Prompt", "context + question",
+        node(getTranslation("main.diagram.node.prompt"),
+            getTranslation("main.diagram.node.prompt.sub"),
             "rag-architecture__node--query",
             "51.5%", "78.889%", "14%", "8.889%",
             Module05View.PATH),
-        node("LLM", "Ollama · Llama 3.2",
+        node(getTranslation("main.diagram.node.llm"),
+            getTranslation("main.diagram.node.llm.sub"),
             "rag-architecture__node--query",
             "68%", "78.889%", "14%", "8.889%",
             Module05View.PATH),
-        node("Vaadin UI", "answer to user",
+        node(getTranslation("main.diagram.node.ui"),
+            getTranslation("main.diagram.node.ui.sub"),
             "rag-architecture__node--query",
             "84.5%", "78.889%", "14%", "8.889%",
             Module06View.PATH),
@@ -151,10 +159,10 @@ final class RagArchitectureDiagram extends Div {
     Div copy = new Div();
     copy.addClassName("rag-architecture__jvm-copy");
 
-    Span title = new Span("JVM");
+    Span title = new Span(getTranslation("main.diagram.jvm.title"));
     title.addClassName("rag-architecture__jvm-title");
 
-    Span subtitle = new Span("single process · Vaadin UI · Ollama client");
+    Span subtitle = new Span(getTranslation("main.diagram.jvm.subtitle"));
     subtitle.addClassName("rag-architecture__jvm-subtitle");
 
     Div rail = new Div();
@@ -207,13 +215,13 @@ final class RagArchitectureDiagram extends Div {
         .addEventListener("keydown", e -> UI.getCurrent().navigate(Module02View.PATH))
         .setFilter("event.key === 'Enter'");
 
-    Span kicker = new Span("VECTOR STORE");
+    Span kicker = new Span(getTranslation("main.diagram.store.kicker"));
     kicker.addClassName("rag-architecture__store-kicker");
 
-    Span title = new Span("EclipseStore · JVector");
+    Span title = new Span(getTranslation("main.diagram.store.title"));
     title.addClassName("rag-architecture__store-title");
 
-    Span subtitle = new Span("persistent raw vectors · in-memory HNSW index");
+    Span subtitle = new Span(getTranslation("main.diagram.store.subtitle"));
     subtitle.addClassName("rag-architecture__store-subtitle");
 
     store.add(kicker, title, subtitle);
