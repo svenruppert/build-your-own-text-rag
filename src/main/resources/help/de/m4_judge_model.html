@@ -1,0 +1,12 @@
+<p><strong>Zweck.</strong> Welches Ollama-Modell als
+LLM-Richter für das Reranking fungiert. Jeder Kandidat
+der ersten Stufe löst einen Aufruf gegen dieses Modell aus;
+Qualität und Latenz skalieren beide mit der Wahl.</p>
+<p><strong>Werte.</strong> Jedes Instruct- oder
+Reasoning-Modell in Ollama.</p>
+<p><strong>Hinweis.</strong> Ein kleines Instruct-Modell
+(3–8B) ist meist ausreichend; Reasoning-Modelle
+(<code>qwen3-thinking</code>, <code>deepseek-r1</code>)
+liefern spürbar bessere Reihenfolgen, multiplizieren aber
+die Latenz. Ein kleineres Modell als das Generierungsmodell
+als Richter verwenden.</p>

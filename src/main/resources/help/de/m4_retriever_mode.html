@@ -1,0 +1,20 @@
+<p><strong>Zweck.</strong> Welcher Index die Abfrage
+beantwortet. Vektor ist semantisch; BM25 ist lexikalisch;
+Hybrid verbindet beide.</p>
+<p><strong>Optionen.</strong></p>
+<ul>
+  <li><strong>Vektor</strong> -- Nächste-Nachbarn über
+    Einbettungen. Stark bei Paraphrasen, schwach bei
+    seltenen Eigennamen.</li>
+  <li><strong>BM25</strong> -- Term-Frequenz-Bewertung.
+    Stark bei exakten Begriffen und Abkürzungen, blind
+    für Synonyme.</li>
+  <li><strong>Hybrid (RRF)</strong> -- verbindet beide
+    Ranglisten per reziproker Rangfusion.</li>
+  <li><strong>Hybrid (gewichtet)</strong> -- lineares
+    Mischen normierter Scores.</li>
+</ul>
+<p><strong>Hinweis.</strong> Hybrid ist der sichere Standard
+für gemischte Abfragen; reiner Vektor gewinnt bei gut
+strukturiertem Fließtext; reines BM25 gewinnt bei Code
+oder Logs.</p>

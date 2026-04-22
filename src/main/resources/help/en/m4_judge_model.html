@@ -1,0 +1,11 @@
+<p><strong>Purpose.</strong> Which Ollama model acts as the
+LLM judge for reranking. Each first-stage candidate triggers
+one call against this model, so both quality and latency
+scale with the choice.</p>
+<p><strong>Values.</strong> Any instruct or reasoning model
+pulled into Ollama.</p>
+<p><strong>Hint.</strong> A small instruct model (3-8B) is
+usually enough; reasoning models (<code>qwen3-thinking</code>,
+<code>deepseek-r1</code>) give noticeably better ordering but
+multiply latency. Use a smaller judge than the generation
+model.</p>

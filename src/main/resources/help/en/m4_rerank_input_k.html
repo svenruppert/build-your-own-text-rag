@@ -1,0 +1,8 @@
+<p><strong>Purpose.</strong> How many first-stage candidates
+feed the reranker. The reranker then keeps the best
+<code>top-k</code> after scoring.</p>
+<p><strong>Range.</strong> At least <code>top-k</code>; 10
+to 50 practical. Default 20.</p>
+<p><strong>Hint.</strong> Larger means the reranker has
+more chance to promote a buried gem, at a linear latency
+cost. 15-25 is a sweet spot for an LLM judge on a laptop.</p>

@@ -1,0 +1,12 @@
+<p><strong>Purpose.</strong> Drop a <code>.txt</code> or
+<code>.md</code> file; the product ingests it on arrival --
+chunks it, embeds every chunk, persists the vectors. Unlike
+the lab views there is no separate &quot;Ingest&quot; step.</p>
+<p><strong>Values.</strong> Up to 20 text or Markdown files
+per session; each served embedded with
+<code>nomic-embed-text-v2-moe</code>.</p>
+<p><strong>Hint.</strong> Embedding is the slow part --
+expect a second or more per chunk on a laptop. The progress
+bar shows an indeterminate pulse while the embed pass runs
+and turns green on completion. Existing documents can be
+removed through the chip strip below the upload.</p>

@@ -1,0 +1,15 @@
+<p><strong>Purpose.</strong> How the hybrid retriever
+combines the vector and BM25 ranked lists into a single
+ordering.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>Reciprocal Rank Fusion (RRF)</strong> -- score-
+    free, uses only each list's rank. Robust across score
+    scales. Default.</li>
+  <li><strong>Weighted Score</strong> -- normalises each
+    list's scores to <code>[0,1]</code> and takes a weighted
+    sum. Tunable but sensitive to scale.</li>
+</ul>
+<p><strong>Hint.</strong> Stick with RRF unless you have a
+reason to tune weights -- raw BM25 and cosine scores live on
+different scales, which weighted fusion has to compensate for.</p>

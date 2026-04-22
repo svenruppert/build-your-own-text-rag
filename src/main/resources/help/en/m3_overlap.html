@@ -1,0 +1,9 @@
+<p><strong>Purpose.</strong> How many characters each chunk
+repeats from the tail of the previous one. Ensures a fact
+that straddles a boundary ends up fully inside at least one
+chunk.</p>
+<p><strong>Range.</strong> 0 to half the chunk size.
+Default 40.</p>
+<p><strong>Hint.</strong> Around 10-20% of the chunk size
+is typical. Zero makes boundaries brittle; very high values
+waste storage and push duplicates into retrieval results.</p>

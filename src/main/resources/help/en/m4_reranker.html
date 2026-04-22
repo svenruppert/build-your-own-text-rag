@@ -1,0 +1,15 @@
+<p><strong>Purpose.</strong> Reorders the first-stage hits
+with a second, usually heavier model to push the most
+relevant chunks to the top.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>None</strong> -- first-stage scores alone decide
+    the order. Default.</li>
+  <li><strong>LLM-as-judge (Ollama)</strong> -- asks the chosen
+    model to score each candidate; latency grows linearly
+    with <code>first-stage k</code>.</li>
+</ul>
+<p><strong>Hint.</strong> Turn the reranker on only when
+first-stage ranking is visibly wrong; it is one LLM call per
+candidate, so 20 candidates against a reasoning model can
+take minutes on a laptop.</p>

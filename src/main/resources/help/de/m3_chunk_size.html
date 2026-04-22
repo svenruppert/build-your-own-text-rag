@@ -1,0 +1,13 @@
+<p><strong>Zweck.</strong> Wie viele Zeichen jeder Chunk
+anstrebt. Die satz- und strukturbewussten Chunker behandeln
+dies als Richtwert und runden auf die nächste Grenze; der
+Chunker mit fester Größe schneidet hart.</p>
+<p><strong>Bereich.</strong> 100 bis 2000 praktisch.
+Standardwerte je Tab: 200 (fest), 200 (überlappend),
+300 (Satz), 400 (Struktur).</p>
+<p><strong>Hinweis.</strong> Kleine Chunks (ca. 200) halten
+den LLM-Kontext straff, können Antworten aber auf mehrere
+Stücke aufteilen. Große Chunks (über 800) tragen mehr
+Kontext, verdrängen aber konkurrierende Chunks aus dem
+top-k. 300–500 ist ein vernünftiger Standard für
+deutschen Fließtext.</p>

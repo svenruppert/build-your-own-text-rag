@@ -1,0 +1,9 @@
+<p><strong>Purpose.</strong> Controls how deterministic the
+model's sampling is. Low values pin the model to its highest-
+probability token; high values let it roam.</p>
+<p><strong>Range.</strong> 0.0 to 1.0 typical (Ollama accepts
+up to 2.0). Default 0.7 for chat.</p>
+<p><strong>Hint.</strong> For factual Q&amp;A or code, keep
+below 0.3 so the model commits to one answer. For creative
+drafting, 0.7-0.9 gives variety. Above 1.0 the output often
+degrades into incoherent text.</p>

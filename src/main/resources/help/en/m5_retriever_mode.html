@@ -1,0 +1,13 @@
+<p><strong>Purpose.</strong> Which retriever feeds the
+generator with evidence.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>Vector</strong> -- semantic nearest-neighbour.</li>
+  <li><strong>BM25</strong> -- lexical term-frequency scoring.</li>
+  <li><strong>Hybrid (RRF)</strong> -- reciprocal-rank fusion
+    of the two. Default.</li>
+</ul>
+<p><strong>Hint.</strong> Hybrid is the safest baseline for
+mixed corpora; swap to pure vector on clean prose and to
+pure BM25 on keyword-heavy technical text to feel each
+retriever's bias.</p>

@@ -1,0 +1,11 @@
+<p><strong>Purpose.</strong> A second, post-generation LLM
+pass that inspects whether the answer is actually supported
+by the retrieved chunks, and tags the result grounded /
+partial / not-grounded / unknown.</p>
+<p><strong>Values.</strong> On or off. Off by default in
+Module 5.</p>
+<p><strong>Hint.</strong> Turn on to expose silent
+hallucination; it is a separate LLM call against the same
+model, so it roughly doubles the ask latency. In production
+the check often runs against a small, cheap model rather
+than the main generator.</p>

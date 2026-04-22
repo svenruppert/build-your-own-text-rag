@@ -1,0 +1,13 @@
+<p><strong>Zweck.</strong> Wie viele Chunks der Retriever
+für jede Abfrage zurückgibt. Diese Chunks bilden die
+Belege, die das Sprachmodell beim Generieren einer Antwort
+sieht.</p>
+<p><strong>Bereich.</strong> 1 bis 20 praktisch. Standard 5.</p>
+<p><strong>Hinweis.</strong> Kleines <code>top-k</code> hält
+den Prompt kurz und fokussiert; das Modell sieht weniger
+Ablenkungen, könnte aber Kontext in längeren Antworten
+verpassen. Großes <code>top-k</code> verbreitert die Belege,
+kostet aber Kontextfenster-Tokens und kann den Einfluss
+des besten Chunks verwässern. Für Fragen zu einem einzelnen
+Dokument reichen 3 bis 5; für dokumentübergreifende Fragen
+sind 7 bis 10 ein guter Ausgangspunkt.</p>

@@ -1,0 +1,17 @@
+<p><strong>Purpose.</strong> Which algorithm carves the
+document into retrievable units. Each trades off boundary
+fidelity against simplicity.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>Fixed size</strong> -- hard character count, cuts
+    through words and sentences. Fastest, least faithful.</li>
+  <li><strong>Overlapping</strong> -- fixed size plus a trailing
+    overlap so boundary information is recoverable.</li>
+  <li><strong>Sentence</strong> -- respects sentence ends, pads
+    towards the target size. The workshop default.</li>
+  <li><strong>Structure-aware</strong> -- aligns chunks with
+    Markdown headings and carries the heading path along.</li>
+</ul>
+<p><strong>Hint.</strong> Start with <code>Sentence</code>
+for prose; switch to <code>Structure-aware</code> when
+headings carry real meaning (manuals, wikis).</p>

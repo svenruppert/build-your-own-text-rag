@@ -1,0 +1,13 @@
+<p><strong>Purpose.</strong> Which Ollama model writes the
+grounded answer from the retrieved chunks.</p>
+<p><strong>Values.</strong> Any chat-capable model pulled
+into Ollama; the list is fetched from
+<code>/api/tags</code>. Default prefers
+<code>gemma4:e4b</code> when available, then other
+<code>gemma</code>, <code>llama</code> or <code>qwen</code>
+family models.</p>
+<p><strong>Hint.</strong> Small instruct models answer
+quickly and stay on-context if the prompt is tight. Reasoning
+models emit thinking tokens into the side panel and produce
+better answers on multi-chunk questions, at a latency cost
+of seconds to minutes.</p>

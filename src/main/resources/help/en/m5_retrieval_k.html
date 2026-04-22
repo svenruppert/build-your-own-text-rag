@@ -1,0 +1,9 @@
+<p><strong>Purpose.</strong> How many chunks the retriever
+hands to the generator as evidence. The same knob as
+Module 4's <code>top-k</code>, but here the trade-off
+emphasises prompt size.</p>
+<p><strong>Range.</strong> 1 to 15 practical. Default 5.</p>
+<p><strong>Hint.</strong> Every extra chunk adds roughly its
+size in tokens to the prompt. On a laptop with a 4k context
+and 400-char chunks, 5 to 8 chunks is the comfortable range;
+larger starts to crowd out the answer.</p>

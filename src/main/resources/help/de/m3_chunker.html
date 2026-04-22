@@ -1,0 +1,20 @@
+<p><strong>Zweck.</strong> Welcher Algorithmus das Dokument
+in abrufbare Einheiten zerlegt. Jeder Algorithmus tauscht
+Grenz-Treue gegen Einfachheit.</p>
+<p><strong>Optionen.</strong></p>
+<ul>
+  <li><strong>Feste Größe</strong> -- harte Zeichenanzahl,
+    schneidet mitten in Wörter und Sätze. Schnellste,
+    ungenaueste Methode.</li>
+  <li><strong>Überlappend</strong> -- feste Größe plus einen
+    abschließenden Überlappungsbereich, damit Grenzinformationen
+    wiederherstellbar sind.</li>
+  <li><strong>Satz</strong> -- respektiert Satzenden und
+    füllt auf die Zielgröße auf. Workshop-Standard.</li>
+  <li><strong>Strukturbewusst</strong> -- richtet Chunks an
+    Markdown-Überschriften aus und überträgt den
+    Überschriftspfad.</li>
+</ul>
+<p><strong>Hinweis.</strong> Mit <code>Satz</code> bei Fließtext
+beginnen; zu <code>Strukturbewusst</code> wechseln, wenn
+Überschriften echte Bedeutung tragen (Handbücher, Wikis).</p>

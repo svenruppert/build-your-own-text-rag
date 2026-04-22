@@ -1,0 +1,16 @@
+<p><strong>Zweck.</strong> Welche Prompt-Vorlage die
+abgerufenen Chunks umhüllt. Die strikte Vorlage weist das
+Modell an, zu verweigern, wenn der Kontext eine Antwort
+nicht unterstützt.</p>
+<p><strong>Optionen.</strong></p>
+<ul>
+  <li><strong>aus</strong> -- <code>SimpleGroundedPromptTemplate</code>.
+    Das Modell kann auf parametrisches Wissen zurückgreifen.</li>
+  <li><strong>ein</strong> -- <code>StrictRefusalPromptTemplate</code>.
+    Das Modell wird angewiesen, &quot;Ich weiß es nicht&quot;
+    zu antworten, wenn die Chunks die Antwort nicht enthalten.</li>
+</ul>
+<p><strong>Hinweis.</strong> Für compliance-sensible Demos
+einschalten; für explorative Gespräche ausschalten. Eine
+strikte Vorlage erhöht die Ablehnungsrate, reduziert aber
+Halluzinationen.</p>

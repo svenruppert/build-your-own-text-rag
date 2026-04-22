@@ -1,0 +1,11 @@
+<p><strong>Purpose.</strong> How many candidates the retriever
+hands to the fusion or reranker step before cutting down to
+<code>top-k</code>. Larger first-stage pool gives fusion and
+rerankers more to work with.</p>
+<p><strong>Range.</strong> At least <code>top-k</code>; 10 to
+50 practical. Default 20 when the LLM-as-judge reranker is
+active.</p>
+<p><strong>Hint.</strong> Raise this if the reranker keeps
+picking the wrong chunks -- the first stage may simply be
+missing better candidates. Each extra candidate adds one
+judge-LLM call, so the latency cost is linear.</p>

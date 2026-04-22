@@ -1,0 +1,10 @@
+<p><strong>Purpose.</strong> Which store backs the hits grid.
+Both stores always receive every add and every query in
+lock-step; this toggle only changes what the grid displays.</p>
+<p><strong>Values.</strong> <code>InMemoryVectorStore</code>
+(linear scan) or <code>EclipseStoreJVectorStore</code>
+(persistent vectors + HNSW index).</p>
+<p><strong>Hint.</strong> Switch back and forth after a few
+hundred adds to watch the JVector store pull ahead on query
+latency -- the timing strip records both regardless of the
+toggle's position.</p>

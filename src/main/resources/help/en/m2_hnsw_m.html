@@ -1,0 +1,9 @@
+<p><strong>Purpose.</strong> The maximum number of out-edges
+per node in the HNSW graph the JVector store builds. Higher
+<code>M</code> gives a denser graph and better recall, at
+the cost of more memory and slower index build.</p>
+<p><strong>Range.</strong> 8 to 64 practical. Default 16.</p>
+<p><strong>Hint.</strong> 16 is a good baseline. Raise to 32
+only if recall is measurably poor on your corpus; doubling
+<code>M</code> roughly doubles index memory. Rebuild the
+store after changing this.</p>

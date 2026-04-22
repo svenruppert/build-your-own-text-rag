@@ -1,0 +1,12 @@
+<p><strong>Purpose.</strong> How many characters each chunk
+aims for. The sentence- and structure-aware chunkers treat
+this as a soft target and round to the next boundary; the
+fixed-size chunker treats it as a hard cut.</p>
+<p><strong>Range.</strong> 100 to 2000 practical. Defaults
+per tab: 200 (fixed), 200 (overlap), 300 (sentence), 400
+(structure).</p>
+<p><strong>Hint.</strong> Small chunks (around 200) keep the
+LLM context tight but can split answers across pieces. Large
+chunks (over 800) carry more context but push out competing
+chunks from the top-k. 300-500 is a reasonable default for
+English prose.</p>

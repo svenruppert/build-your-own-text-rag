@@ -1,0 +1,10 @@
+<p><strong>Purpose.</strong> The constant added to each
+rank in the reciprocal-rank-fusion formula
+<code>1 / (k + rank)</code>. Larger <code>k</code> flattens
+the contribution curve so later ranks still influence the
+blend.</p>
+<p><strong>Range.</strong> 30 to 100 practical. Default 60
+(the value from the original RRF paper).</p>
+<p><strong>Hint.</strong> Rarely worth tuning. Below 30 the
+top-1 on each list dominates almost completely; above 100
+the two lists blur into a near-average.</p>

@@ -1,0 +1,11 @@
+<p><strong>Zweck.</strong> Welcher Speicher das Treffer-Grid
+befüllt. Beide Speicher erhalten immer jeden Hinzufüge- und
+Abfragevorgang gleichzeitig; dieser Schalter ändert nur,
+was das Grid anzeigt.</p>
+<p><strong>Werte.</strong> <code>InMemoryVectorStore</code>
+(linearer Scan) oder <code>EclipseStoreJVectorStore</code>
+(persistente Vektoren + HNSW-Index).</p>
+<p><strong>Hinweis.</strong> Nach einigen hundert Einträgen
+hin und her wechseln, um zu beobachten wie der JVector-Speicher
+bei der Abfragelatenz die Nase vorne hat – die Zeitanzeige
+zeichnet beide auf, unabhängig von der Schalterstellung.</p>

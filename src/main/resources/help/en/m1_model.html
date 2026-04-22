@@ -1,0 +1,11 @@
+<p><strong>Purpose.</strong> Which local Ollama model answers
+the chat prompt. Every request posts to <code>/api/generate</code>
+against this model; swapping it is the single biggest lever on
+quality, latency and VRAM use.</p>
+<p><strong>Values.</strong> Whatever <code>ollama list</code>
+reports. Default falls back to <code>gemma4:e4b</code> if the
+list call fails.</p>
+<p><strong>Hint.</strong> Small instruct models (3-8B) are
+fast and adequate for short chat; larger or reasoning models
+(<code>qwen3</code>, <code>deepseek-r1</code>) give better
+answers but can take tens of seconds per reply on a laptop.</p>

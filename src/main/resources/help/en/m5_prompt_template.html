@@ -1,0 +1,15 @@
+<p><strong>Purpose.</strong> Which grounded-prompt wrapper
+goes around the retrieved chunks. The strict template tells
+the model to refuse when the context does not support an
+answer.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>off</strong> -- <code>SimpleGroundedPromptTemplate</code>.
+    Model may fall back to parametric knowledge.</li>
+  <li><strong>on</strong> -- <code>StrictRefusalPromptTemplate</code>.
+    Model is instructed to answer &quot;I don't know&quot;
+    when the chunks do not contain the answer.</li>
+</ul>
+<p><strong>Hint.</strong> Turn on for compliance-sensitive
+demos; leave off for exploratory chatting. A strict template
+increases refusal rate but reduces hallucination.</p>

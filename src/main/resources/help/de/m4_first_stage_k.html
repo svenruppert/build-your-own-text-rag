@@ -1,0 +1,12 @@
+<p><strong>Zweck.</strong> Wie viele Kandidaten der Retriever
+vor dem Kürzen auf <code>top-k</code> an den Fusions- oder
+Reranker-Schritt übergibt. Ein größerer Pool in der ersten
+Stufe gibt Fusion und Reranker mehr Material.</p>
+<p><strong>Bereich.</strong> Mindestens <code>top-k</code>;
+10 bis 50 praktisch. Standard 20, wenn der LLM-als-Richter-
+Reranker aktiv ist.</p>
+<p><strong>Hinweis.</strong> Erhöhen, wenn der Reranker
+wiederholt falsche Chunks auswählt – die erste Stufe fehlen
+möglicherweise bessere Kandidaten. Jeder zusätzliche Kandidat
+fügt einen LLM-Aufruf als Richter hinzu, die Latenz steigt
+linear.</p>

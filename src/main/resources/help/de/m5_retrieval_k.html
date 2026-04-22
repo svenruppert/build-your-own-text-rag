@@ -1,0 +1,10 @@
+<p><strong>Zweck.</strong> Wie viele Chunks der Retriever
+dem Generator als Belege übergibt. Derselbe Regler wie
+<code>top-k</code> in Modul 4, aber hier betont das
+Kompromiss die Prompt-Größe.</p>
+<p><strong>Bereich.</strong> 1 bis 15 praktisch. Standard 5.</p>
+<p><strong>Hinweis.</strong> Jeder zusätzliche Chunk fügt
+dem Prompt etwa seine eigene Größe in Tokens hinzu. Mit
+einem 4k-Kontext und 400-Zeichen-Chunks auf einem Laptop
+sind 5 bis 8 Chunks der komfortable Bereich; mehr beginnt,
+die Antwort zu verdrängen.</p>

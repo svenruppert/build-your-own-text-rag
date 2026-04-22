@@ -1,0 +1,11 @@
+<p><strong>Purpose.</strong> How many chunks the retriever
+returns for each query. These chunks form the evidence the
+language model sees when generating an answer.</p>
+<p><strong>Range.</strong> 1 to 20 practical. Default 5.</p>
+<p><strong>Hint.</strong> Small <code>top-k</code> keeps the
+prompt short and focused; the model sees fewer distractions
+but may miss context in longer answers. Large <code>top-k</code>
+broadens evidence but costs context-window tokens and can
+dilute the best chunk's influence. For single-document
+questions 3 to 5 is usually enough; for questions that span
+multiple documents, 7 to 10 is a reasonable start.</p>

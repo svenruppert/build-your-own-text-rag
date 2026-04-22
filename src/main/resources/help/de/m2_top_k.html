@@ -1,0 +1,8 @@
+<p><strong>Zweck.</strong> Wie viele Nächste-Nachbarn-Treffer
+der Speicher für den aktuellen Abfragevektor zurückgibt.</p>
+<p><strong>Bereich.</strong> 1 bis 50 praktisch. Standard 5.</p>
+<p><strong>Hinweis.</strong> Kleines <code>top-k</code> ist
+visuell leichter zu erfassen. Erhöhen, um den langen
+Schwanz eines Korpus zu erkunden; die Latenz wird kaum
+beeinflusst, da die Arbeit von HNSW mit
+<code>efSearch</code> skaliert, nicht mit <code>k</code>.</p>

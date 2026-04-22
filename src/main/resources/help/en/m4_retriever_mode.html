@@ -1,0 +1,16 @@
+<p><strong>Purpose.</strong> Which index answers the query.
+Vector is semantic; BM25 is lexical; hybrid fuses the two.</p>
+<p><strong>Options.</strong></p>
+<ul>
+  <li><strong>Vector</strong> -- nearest-neighbour over embeddings.
+    Strong on paraphrase, weak on rare proper nouns.</li>
+  <li><strong>BM25</strong> -- term-frequency scoring. Strong on
+    exact terms and acronyms, blind to synonyms.</li>
+  <li><strong>Hybrid (RRF)</strong> -- fuses both ranked lists
+    by reciprocal rank.</li>
+  <li><strong>Hybrid (weighted)</strong> -- linear blend of
+    normalised scores.</li>
+</ul>
+<p><strong>Hint.</strong> Hybrid is the safer default for
+mixed queries; pure vector wins when the corpus is well-
+structured prose; pure BM25 wins on code or logs.</p>

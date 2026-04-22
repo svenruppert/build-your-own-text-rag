@@ -1,0 +1,10 @@
+<p><strong>Zweck.</strong> Die maximale Anzahl ausgehender
+Kanten pro Knoten im HNSW-Graphen des JVector-Speichers.
+Höheres <code>M</code> ergibt einen dichteren Graphen und
+bessere Trefferquote, auf Kosten von mehr Speicher und
+langsamerer Indexerstellung.</p>
+<p><strong>Bereich.</strong> 8 bis 64 praktisch. Standard 16.</p>
+<p><strong>Hinweis.</strong> 16 ist ein guter Ausgangswert.
+Auf 32 erhöhen nur wenn die Trefferquote messbar schlecht ist;
+eine Verdoppelung von <code>M</code> verdoppelt ungefähr den
+Index-Speicherbedarf. Den Speicher nach Änderungen neu aufbauen.</p>

@@ -1,0 +1,12 @@
+<p><strong>Zweck.</strong> Ein zweiter, nach der Generierung
+stattfindender LLM-Durchlauf, der prüft ob die Antwort
+tatsächlich durch die abgerufenen Chunks gestützt wird, und
+das Ergebnis als fundiert / teilweise / nicht fundiert /
+unbekannt kennzeichnet.</p>
+<p><strong>Werte.</strong> Ein oder aus. In Modul 5
+standardmäßig aus.</p>
+<p><strong>Hinweis.</strong> Einschalten, um stille
+Halluzinationen aufzudecken; es ist ein separater LLM-Aufruf
+gegen dasselbe Modell und verdoppelt ungefähr die Latenz.
+In der Produktion läuft die Prüfung oft gegen ein kleines,
+günstiges Modell statt gegen den Hauptgenerator.</p>

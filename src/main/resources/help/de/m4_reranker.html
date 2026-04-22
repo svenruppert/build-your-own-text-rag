@@ -1,0 +1,16 @@
+<p><strong>Zweck.</strong> Ordnet die Treffer der ersten
+Stufe mit einem zweiten, meist schwereren Modell neu an,
+um die relevantesten Chunks nach oben zu befördern.</p>
+<p><strong>Optionen.</strong></p>
+<ul>
+  <li><strong>Keiner</strong> -- die Scores der ersten Stufe
+    allein bestimmen die Reihenfolge. Standard.</li>
+  <li><strong>LLM-als-Richter (Ollama)</strong> -- fragt das
+    gewählte Modell, jeden Kandidaten zu bewerten; die Latenz
+    steigt linear mit <code>first-stage k</code>.</li>
+</ul>
+<p><strong>Hinweis.</strong> Den Reranker nur aktivieren,
+wenn das Ranking der ersten Stufe sichtbar falsch ist;
+es ist ein LLM-Aufruf pro Kandidat, also können 20
+Kandidaten gegen ein Reasoning-Modell auf einem Laptop
+Minuten dauern.</p>

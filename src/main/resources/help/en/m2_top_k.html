@@ -1,0 +1,7 @@
+<p><strong>Purpose.</strong> How many nearest-neighbour hits
+the store returns for the current query vector.</p>
+<p><strong>Range.</strong> 1 to 50 practical. Default 5.</p>
+<p><strong>Hint.</strong> Small <code>top-k</code> is easier
+to scan visually. Raise it to explore the long tail of a
+corpus; latency is almost unaffected because HNSW's work
+scales with <code>efSearch</code>, not with <code>k</code>.</p>

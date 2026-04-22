@@ -1,0 +1,16 @@
+<p><strong>Zweck.</strong> Wie der Hybrid-Retriever die
+Vektor- und BM25-Ranglisten zu einer einzigen Reihenfolge
+zusammenführt.</p>
+<p><strong>Optionen.</strong></p>
+<ul>
+  <li><strong>Reciprocal Rank Fusion (RRF)</strong> -- ohne
+    Score, verwendet nur den Rang in jeder Liste. Robust
+    über verschiedene Score-Skalen hinweg. Standard.</li>
+  <li><strong>Gewichteter Score</strong> -- normiert die
+    Scores jeder Liste auf <code>[0,1]</code> und bildet
+    eine gewichtete Summe. Einstellbar, aber skalenempfindlich.</li>
+</ul>
+<p><strong>Hinweis.</strong> RRF verwenden, solange kein
+Grund besteht, Gewichte zu tunen – rohe BM25- und
+Kosinus-Scores liegen auf verschiedenen Skalen, was die
+gewichtete Fusion ausgleichen muss.</p>

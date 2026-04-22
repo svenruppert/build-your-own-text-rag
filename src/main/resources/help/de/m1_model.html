@@ -1,0 +1,13 @@
+<p><strong>Zweck.</strong> Welches lokale Ollama-Modell die
+Chat-Anfrage beantwortet. Jede Anfrage wird an
+<code>/api/generate</code> mit diesem Modell gesendet;
+das Wechseln ist der wirksamste Hebel für Qualität,
+Latenz und VRAM-Verbrauch.</p>
+<p><strong>Werte.</strong> Alle von <code>ollama list</code>
+gemeldeten Modelle. Standard ist <code>gemma4:e4b</code>,
+falls der Listenaufruf fehlschlägt.</p>
+<p><strong>Hinweis.</strong> Kleine Instruct-Modelle (3–8B)
+sind schnell und ausreichend für kurzen Chat; größere oder
+Reasoning-Modelle (<code>qwen3</code>, <code>deepseek-r1</code>)
+liefern bessere Antworten, können aber auf einem Laptop
+Dutzende von Sekunden pro Antwort benötigen.</p>

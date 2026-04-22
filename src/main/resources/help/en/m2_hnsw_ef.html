@@ -1,0 +1,9 @@
+<p><strong>Purpose.</strong> The size of the dynamic candidate
+list the index keeps while inserting a new node. Larger values
+make the graph more accurate; they do not affect query time
+directly.</p>
+<p><strong>Range.</strong> 40 to 400 practical. Default 100.</p>
+<p><strong>Hint.</strong> Raise this before raising
+<code>M</code> if recall is poor -- it is cheaper on memory
+and only slows indexing, not search. Changes take effect on
+the next rebuild.</p>
