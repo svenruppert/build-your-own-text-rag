@@ -4,7 +4,6 @@ import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
 import com.svenruppert.flow.views.help.ExpandableHelp;
-import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
@@ -104,7 +103,7 @@ public class Module01View
 
   /** Default constructor used by Vaadin's route registry. */
   public Module01View() {
-    this(new DefaultLlmClient(LlmConfig.defaults()));
+    this(DefaultLlmClient.withDefaults());
   }
 
   /** Overload kept visible for tests or alternative wiring. */
@@ -114,7 +113,9 @@ public class Module01View
     markdownToggle.setLabel(getTranslation("m01.markdown.label"));
     markdownToggle.setValue(true);
 
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the view to viewport height and clip overflow.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 
@@ -153,29 +154,15 @@ public class Module01View
     modelSelector.addClassName("m01-model-selector");
 
     // Each control gets a compact "What is this?" help panel directly
-    // underneath via withHelp(...); closed state is a single subtle
+    // underneath via ExpandableHelp.pair(...); closed state is a single subtle
     // link-style line, open state expands the parameter's HTML body.
     HorizontalLayout row = new HorizontalLayout(
-        withHelp(modelSelector, ParameterDocs.M1_MODEL),
-        withHelp(markdownToggle, ParameterDocs.M1_MARKDOWN));
+        ExpandableHelp.pair(modelSelector, ParameterDocs.M1_MODEL),
+        ExpandableHelp.pair(markdownToggle, ParameterDocs.M1_MARKDOWN));
     row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
-  }
-
-  /**
-   * Pairs a user-facing control with its inline help panel, stacked
-   * vertically in a tight column. The column preserves the control's
-   * natural width and lets the help's "What is this?" link sit as a
-   * subtle footnote directly underneath.
-   */
-  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
-    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
-    column.setPadding(false);
-    column.setSpacing(false);
-    column.setWidth(null);
-    return column;
   }
 
   private Component buildUploadRow() {

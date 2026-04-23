@@ -3,8 +3,8 @@ package com.svenruppert.flow.views.module05;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
+import com.svenruppert.flow.util.UploadTempDir;
 import com.svenruppert.flow.views.help.ExpandableHelp;
-import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.svenruppert.flow.views.help.RetrievalSourcesPanel;
@@ -54,7 +54,6 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -64,7 +63,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * Ask Lab -- module 5's user-facing half.
@@ -116,7 +114,7 @@ public class Module05View
   private LuceneBM25KeywordIndex keywordIndex;
   private OllamaStreamingApi streamingApi;
   private IngestionPipeline pipeline;
-  private Path uploadTempDir;
+  private UploadTempDir uploadTempDir;
   private int documentsIngested = 0;
 
   // ------- ingestion widgets ------------------------------------------
@@ -184,7 +182,7 @@ public class Module05View
   private final Checkbox groundingBox = new Checkbox();
 
   public Module05View() {
-    this(new DefaultLlmClient(LlmConfig.defaults()), LlmConfig.defaults());
+    this(DefaultLlmClient.withDefaults(), LlmConfig.defaults());
   }
 
   public Module05View(LlmClient llmClient, LlmConfig llmConfig) {
@@ -203,7 +201,9 @@ public class Module05View
     groundingBox.setLabel(getTranslation("m05.checkbox.grounding"));
     corpusFooter.addClassName("m05-corpus-footer");
 
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the view to viewport height and clip overflow.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 
@@ -236,7 +236,7 @@ public class Module05View
       this.streamingApi = new OllamaStreamingApi(llmConfig);
       this.pipeline = new IngestionPipeline(llmClient, EMBEDDING_MODEL,
           new SentenceChunker(400), vectorStore, keywordIndex);
-      this.uploadTempDir = Files.createTempDirectory("module05-upload-");
+      this.uploadTempDir = UploadTempDir.create("module05-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise ask lab", e);
       Notification.show(getTranslation("m05.error.init", e.getMessage()));
@@ -252,7 +252,7 @@ public class Module05View
     } catch (IOException e) {
       logger().warn("Keyword index close failed: {}", e.getMessage());
     }
-    deleteRecursively(uploadTempDir);
+    if (uploadTempDir != null) uploadTempDir.close(msg -> logger().warn(msg));
     super.onDetach(event);
   }
 
@@ -298,8 +298,8 @@ public class Module05View
     uploadRow.setFlexGrow(1, pendingChips);
 
     HorizontalLayout retrieverRow = new HorizontalLayout(
-        withHelp(retrieverGroup, ParameterDocs.M5_RETRIEVER_MODE),
-        withHelp(retrievalKField, ParameterDocs.M5_RETRIEVAL_K));
+        ExpandableHelp.pair(retrieverGroup, ParameterDocs.M5_RETRIEVER_MODE),
+        ExpandableHelp.pair(retrievalKField, ParameterDocs.M5_RETRIEVAL_K));
     retrieverRow.setAlignItems(FlexComponent.Alignment.START);
     retrieverRow.setSpacing(true);
 
@@ -343,25 +343,13 @@ public class Module05View
 
     HorizontalLayout row = new HorizontalLayout(
         queryField,
-        withHelp(modelSelector, ParameterDocs.M5_GENERATION_MODEL),
+        ExpandableHelp.pair(modelSelector, ParameterDocs.M5_GENERATION_MODEL),
         askButton,
         latencyLabel, refusalBadge, groundingBadge);
     row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
-  }
-
-  /**
-   * Pairs a user-facing control with its inline help panel in a
-   * tight vertical column.
-   */
-  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
-    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
-    column.setPadding(false);
-    column.setSpacing(false);
-    column.setWidth(null);
-    return column;
   }
 
   private Component buildProgressRow() {
@@ -405,8 +393,8 @@ public class Module05View
 
   private Component buildOptionsRow() {
     HorizontalLayout row = new HorizontalLayout(
-        withHelp(strictRefusalBox, ParameterDocs.M5_PROMPT_TEMPLATE),
-        withHelp(groundingBox, ParameterDocs.M5_GROUNDING_CHECK));
+        ExpandableHelp.pair(strictRefusalBox, ParameterDocs.M5_PROMPT_TEMPLATE),
+        ExpandableHelp.pair(groundingBox, ParameterDocs.M5_GROUNDING_CHECK));
     row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     return row;
@@ -674,18 +662,4 @@ public class Module05View
         .orElse("(unknown)");
   }
 
-  private void deleteRecursively(Path root) {
-    if (root == null) return;
-    try (Stream<Path> walk = Files.walk(root)) {
-      walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-        try {
-          Files.deleteIfExists(p);
-        } catch (IOException ignored) {
-          // best-effort cleanup
-        }
-      });
-    } catch (IOException e) {
-      logger().warn("Could not delete {}: {}", root, e.getMessage());
-    }
-  }
 }

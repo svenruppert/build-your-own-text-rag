@@ -3,7 +3,6 @@ package com.svenruppert.flow.views.module03;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.views.help.ExpandableHelp;
-import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
@@ -127,7 +126,9 @@ public class Module03View
 
     lastStatsText = getTranslation("m03.stats.empty");
 
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the view to viewport height and clip overflow.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 
@@ -282,29 +283,17 @@ public class Module03View
 
     Tab selected = tabs.getSelectedTab();
     if (selected == tabFixed) {
-      row.add(withHelp(fixedSize, ParameterDocs.M3_CHUNK_SIZE));
+      row.add(ExpandableHelp.pair(fixedSize, ParameterDocs.M3_CHUNK_SIZE));
     } else if (selected == tabOverlap) {
       row.add(
-          withHelp(overlapChunkSize, ParameterDocs.M3_CHUNK_SIZE),
-          withHelp(overlapAmount, ParameterDocs.M3_OVERLAP));
+          ExpandableHelp.pair(overlapChunkSize, ParameterDocs.M3_CHUNK_SIZE),
+          ExpandableHelp.pair(overlapAmount, ParameterDocs.M3_OVERLAP));
     } else if (selected == tabSentence) {
-      row.add(withHelp(sentenceTarget, ParameterDocs.M3_CHUNK_SIZE));
+      row.add(ExpandableHelp.pair(sentenceTarget, ParameterDocs.M3_CHUNK_SIZE));
     } else if (selected == tabStructure) {
-      row.add(withHelp(structureTarget, ParameterDocs.M3_CHUNK_SIZE));
+      row.add(ExpandableHelp.pair(structureTarget, ParameterDocs.M3_CHUNK_SIZE));
     }
     paramsBox.add(row);
-  }
-
-  /**
-   * Pairs a per-tab size field with its inline help panel so the
-   * explanation stays attached to its field when the tab switches.
-   */
-  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
-    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
-    column.setPadding(false);
-    column.setSpacing(false);
-    column.setWidth(null);
-    return column;
   }
 
   private void updateStructureTabAvailability() {

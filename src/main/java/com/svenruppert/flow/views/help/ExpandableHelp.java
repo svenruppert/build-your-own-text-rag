@@ -1,9 +1,11 @@
 package com.svenruppert.flow.views.help;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.details.DetailsVariant;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 /**
  * Inline help panel attached to a user-facing control. Closed, it
@@ -52,5 +54,24 @@ public class ExpandableHelp extends Details {
    */
   public static ExpandableHelp of(final HelpEntry entry) {
     return new ExpandableHelp(entry);
+  }
+
+  /**
+   * Pairs a user-facing control with its inline help panel in a tight
+   * vertical column. Centralises the five byte-identical copies that
+   * previously lived as {@code private static VerticalLayout withHelp}
+   * in every module view.
+   *
+   * @param control the user-facing control
+   * @param entry   the help entry rendered beneath it
+   * @return a tight {@link VerticalLayout} column, no padding, no
+   *     spacing, natural width
+   */
+  public static VerticalLayout pair(final Component control, final HelpEntry entry) {
+    VerticalLayout column = new VerticalLayout(control, of(entry));
+    column.setPadding(false);
+    column.setSpacing(false);
+    column.setWidth(null);
+    return column;
   }
 }

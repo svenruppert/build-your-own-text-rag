@@ -84,7 +84,9 @@ public class MainView
   private final Button refreshButton = new Button(VaadinIcon.REFRESH.create());
 
   public MainView() {
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the dashboard to viewport height and clip overflow.
+    setWidthFull();
     setPadding(false);
     setSpacing(false);
     addClassName("dashboard-root");

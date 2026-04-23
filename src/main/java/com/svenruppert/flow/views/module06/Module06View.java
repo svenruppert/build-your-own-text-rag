@@ -149,7 +149,7 @@ public class Module06View
   private final ThinkingPanel thinkingPanel = new ThinkingPanel();
 
   public Module06View() {
-    this(new DefaultLlmClient(LlmConfig.defaults()), LlmConfig.defaults());
+    this(DefaultLlmClient.withDefaults(), LlmConfig.defaults());
   }
 
   public Module06View(LlmClient llmClient, LlmConfig llmConfig) {
@@ -164,7 +164,9 @@ public class Module06View
     stepGenerate.setText(getTranslation("m06.step.generate"));
     stepGround.setText(getTranslation("m06.step.ground"));
 
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the view to viewport height and clip overflow.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 

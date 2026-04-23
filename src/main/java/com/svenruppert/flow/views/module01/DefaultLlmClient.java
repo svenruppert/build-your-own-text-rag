@@ -53,6 +53,15 @@ public class DefaultLlmClient implements LlmClient, HasLogger {
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * Shortcut for {@code new DefaultLlmClient(LlmConfig.defaults())}.
+     * Centralises the five call sites in the view layer that previously
+     * spelled the config construction out by hand.
+     */
+    public static DefaultLlmClient withDefaults() {
+        return new DefaultLlmClient(LlmConfig.defaults());
+    }
+
     @Override
     public Optional<List<String>> listModels() {
         HttpRequest request = HttpRequest.newBuilder()

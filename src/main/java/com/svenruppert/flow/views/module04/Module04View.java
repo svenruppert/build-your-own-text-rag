@@ -3,12 +3,11 @@ package com.svenruppert.flow.views.module04;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
+import com.svenruppert.flow.util.UploadTempDir;
 import com.svenruppert.flow.views.help.ExpandableHelp;
-import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
-import com.svenruppert.flow.views.module01.LlmConfig;
 import com.svenruppert.flow.views.module02.DefaultSimilarity;
 import com.svenruppert.flow.views.module02.InMemoryVectorStore;
 import com.svenruppert.flow.views.module03.Chunk;
@@ -43,7 +42,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -55,7 +53,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * Retrieval Lab -- the user-facing half of module 4.
@@ -114,7 +111,7 @@ public class Module04View
   private InMemoryVectorStore vectorStore;
   private LuceneBM25KeywordIndex keywordIndex;
   private IngestionPipeline pipeline;
-  private Path uploadTempDir;
+  private UploadTempDir uploadTempDir;
   private int documentsIngested = 0;
 
   // ------- widgets ---------------------------------------------------
@@ -196,7 +193,7 @@ public class Module04View
   private final Details judgeThinkingPanel = new Details("", judgeThinkingBody);
 
   public Module04View() {
-    this(new DefaultLlmClient(LlmConfig.defaults()));
+    this(DefaultLlmClient.withDefaults());
   }
 
   public Module04View(LlmClient llmClient) {
@@ -256,7 +253,7 @@ public class Module04View
       this.keywordIndex = new LuceneBM25KeywordIndex();
       this.pipeline = new IngestionPipeline(llmClient, EMBEDDING_MODEL,
           new SentenceChunker(400), vectorStore, keywordIndex);
-      this.uploadTempDir = Files.createTempDirectory("module04-upload-");
+      this.uploadTempDir = UploadTempDir.create("module04-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise retrieval lab", e);
       Notification.show(getTranslation("m04.error.init", e.getMessage()));
@@ -272,7 +269,7 @@ public class Module04View
     } catch (IOException e) {
       logger().warn("Keyword index close failed: {}", e.getMessage());
     }
-    deleteRecursively(uploadTempDir);
+    if (uploadTempDir != null) uploadTempDir.close(msg -> logger().warn(msg));
     super.onDetach(event);
   }
 
@@ -353,7 +350,7 @@ public class Module04View
 
     HorizontalLayout queryRow = new HorizontalLayout(
         queryField,
-        withHelp(topKField, ParameterDocs.M4_TOP_K),
+        ExpandableHelp.pair(topKField, ParameterDocs.M4_TOP_K),
         searchButton, latencyLabel);
     queryRow.setAlignItems(FlexComponent.Alignment.START);
     queryRow.setSpacing(true);
@@ -375,27 +372,15 @@ public class Module04View
     // their own help via refreshConditionalParams().
     VerticalLayout box = new VerticalLayout(
         queryRow,
-        withHelp(retrieverGroup, ParameterDocs.M4_RETRIEVER_MODE),
+        ExpandableHelp.pair(retrieverGroup, ParameterDocs.M4_RETRIEVER_MODE),
         hybridParamsRow,
-        withHelp(rerankerGroup, ParameterDocs.M4_RERANKER),
+        ExpandableHelp.pair(rerankerGroup, ParameterDocs.M4_RERANKER),
         rerankerParamsRow,
         progressRow);
     box.setPadding(false);
     box.setSpacing(true);
     box.setWidthFull();
     return box;
-  }
-
-  /**
-   * Pairs a user-facing control with its inline help panel in a
-   * tight vertical column.
-   */
-  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
-    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
-    column.setPadding(false);
-    column.setSpacing(false);
-    column.setWidth(null);
-    return column;
   }
 
   private Component buildResultsZone() {
@@ -455,18 +440,18 @@ public class Module04View
     rerankerParamsRow.removeAll();
     RetrieverChoice r = retrieverGroup.getValue();
     if (r == RetrieverChoice.HYBRID_RRF) {
-      hybridParamsRow.add(withHelp(rrfKField, ParameterDocs.M4_RRF_K));
+      hybridParamsRow.add(ExpandableHelp.pair(rrfKField, ParameterDocs.M4_RRF_K));
     } else if (r == RetrieverChoice.HYBRID_WEIGHTED) {
       hybridParamsRow.add(
-          withHelp(vectorWeightField, ParameterDocs.M4_VECTOR_WEIGHT),
-          withHelp(bm25WeightField, ParameterDocs.M4_BM25_WEIGHT));
+          ExpandableHelp.pair(vectorWeightField, ParameterDocs.M4_VECTOR_WEIGHT),
+          ExpandableHelp.pair(bm25WeightField, ParameterDocs.M4_BM25_WEIGHT));
     }
 
     RerankerChoice rr = rerankerGroup.getValue();
     if (rr == RerankerChoice.LLM_JUDGE) {
       rerankerParamsRow.add(
-          withHelp(llmJudgeModel, ParameterDocs.M4_JUDGE_MODEL),
-          withHelp(firstStageKField, ParameterDocs.M4_RERANK_INPUT_K));
+          ExpandableHelp.pair(llmJudgeModel, ParameterDocs.M4_JUDGE_MODEL),
+          ExpandableHelp.pair(firstStageKField, ParameterDocs.M4_RERANK_INPUT_K));
     }
   }
 
@@ -776,23 +761,4 @@ public class Module04View
     return flat.length() <= max ? flat : flat.substring(0, max) + "...";
   }
 
-  private void deleteRecursively(Path root) {
-    if (root == null) return;
-    try (Stream<Path> walk = Files.walk(root)) {
-      walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-        try {
-          Files.deleteIfExists(p);
-        } catch (IOException ignored) {
-          // best-effort cleanup
-        }
-      });
-    } catch (IOException e) {
-      logger().warn("Could not delete {}: {}", root, e.getMessage());
-    }
-  }
-
-  // Workaround for unused import: prevents an import optimiser from
-  // deleting StandardCharsets once the view's string usage changes.
-  @SuppressWarnings("unused")
-  private static final String ENCODING = StandardCharsets.UTF_8.name();
 }

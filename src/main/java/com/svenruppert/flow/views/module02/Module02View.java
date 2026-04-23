@@ -3,12 +3,11 @@ package com.svenruppert.flow.views.module02;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
+import com.svenruppert.flow.util.PathCleanup;
 import com.svenruppert.flow.views.help.ExpandableHelp;
-import com.svenruppert.flow.views.help.HelpEntry;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
-import com.svenruppert.flow.views.module01.LlmConfig;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -38,7 +37,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * Vector Store Lab -- the user-facing half of module 2.
@@ -89,7 +87,7 @@ public class Module02View
   private Path jvectorStorageDir;
 
   public Module02View() {
-    this(new DefaultLlmClient(LlmConfig.defaults()));
+    this(DefaultLlmClient.withDefaults());
   }
 
   public Module02View(LlmClient llmClient) {
@@ -155,7 +153,7 @@ public class Module02View
       if (inMemoryStore != null) {
         inMemoryStore.clear();
       }
-      deleteRecursively(jvectorStorageDir);
+      PathCleanup.deleteRecursively(jvectorStorageDir, msg -> logger().warn(msg));
     }
     super.onDetach(detachEvent);
   }
@@ -177,25 +175,12 @@ public class Module02View
     activeStoreToggle.addClassName("m02-store-toggle");
 
     HorizontalLayout row = new HorizontalLayout(
-        withHelp(modelSelector, ParameterDocs.M2_EMBEDDING_MODEL),
-        withHelp(activeStoreToggle, ParameterDocs.M2_ACTIVE_STORE));
+        ExpandableHelp.pair(modelSelector, ParameterDocs.M2_EMBEDDING_MODEL),
+        ExpandableHelp.pair(activeStoreToggle, ParameterDocs.M2_ACTIVE_STORE));
     row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
     row.setWidthFull();
     return row;
-  }
-
-  /**
-   * Pairs a user-facing control with its inline help panel in a
-   * tight vertical column. Mirrors the pattern used across the
-   * workshop's module views.
-   */
-  private static VerticalLayout withHelp(Component control, HelpEntry entry) {
-    VerticalLayout column = new VerticalLayout(control, ExpandableHelp.of(entry));
-    column.setPadding(false);
-    column.setSpacing(false);
-    column.setWidth(null);
-    return column;
   }
 
   private Component buildAddRow() {
@@ -209,8 +194,8 @@ public class Module02View
     // guess at them; the text field is self-explanatory and stays bare.
     HorizontalLayout singleRow = new HorizontalLayout(
         addTextField,
-        withHelp(addIdField, ParameterDocs.M2_ADD_ID),
-        withHelp(addPayloadField, ParameterDocs.M2_ADD_PAYLOAD),
+        ExpandableHelp.pair(addIdField, ParameterDocs.M2_ADD_ID),
+        ExpandableHelp.pair(addPayloadField, ParameterDocs.M2_ADD_PAYLOAD),
         addButton);
     singleRow.setAlignItems(FlexComponent.Alignment.START);
     singleRow.setSpacing(true);
@@ -263,7 +248,7 @@ public class Module02View
 
     HorizontalLayout row = new HorizontalLayout(
         queryField,
-        withHelp(topKField, ParameterDocs.M2_TOP_K),
+        ExpandableHelp.pair(topKField, ParameterDocs.M2_TOP_K),
         searchButton);
     row.setAlignItems(FlexComponent.Alignment.START);
     row.setSpacing(true);
@@ -471,21 +456,6 @@ public class Module02View
 
   private static Optional<String> blankOr(String value) {
     return (value == null || value.isBlank()) ? Optional.empty() : Optional.of(value);
-  }
-
-  private void deleteRecursively(Path root) {
-    if (root == null) return;
-    try (Stream<Path> walk = Files.walk(root)) {
-      walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-        try {
-          Files.deleteIfExists(p);
-        } catch (IOException ignored) {
-          // robust: leave it to the OS cleanup rather than fail detach.
-        }
-      });
-    } catch (IOException e) {
-      logger().warn("Could not delete {}: {}", root, e.getMessage());
-    }
   }
 
   // ---------- value types ---------------------------------------------

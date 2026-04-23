@@ -1,8 +1,8 @@
 package com.svenruppert.flow.views.module02;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
+import com.svenruppert.flow.util.PathCleanup;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
-import java.util.stream.Stream;
 
 /**
  * Latency benchmark for the two {@link VectorStore} implementations in
@@ -85,7 +84,7 @@ public final class JVectorStoreBenchmark implements HasLogger {
                         size, corpus, queryVectors, warmup, queries, topK,
                         tempDir);
             } finally {
-                deleteRecursively(tempDir);
+                PathCleanup.deleteRecursively(tempDir, System.err::println);
             }
         }
     }
@@ -199,17 +198,4 @@ public final class JVectorStoreBenchmark implements HasLogger {
         return List.copyOf(out);
     }
 
-    private static void deleteRecursively(Path root) {
-        if (root == null) return;
-        try (Stream<Path> walk = Files.walk(root)) {
-            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (IOException ignored) {
-                }
-            });
-        } catch (IOException e) {
-            System.err.println("Could not delete " + root + ": " + e.getMessage());
-        }
-    }
 }

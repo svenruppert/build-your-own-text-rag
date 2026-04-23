@@ -26,7 +26,7 @@ class LiveOllamaSmokeTest {
     @Test
     @DisplayName("local Ollama answers /api/tags with at least one model")
     void canReachLocalOllamaAndListModels() {
-        LlmClient client = new DefaultLlmClient(LlmConfig.defaults());
+        LlmClient client = DefaultLlmClient.withDefaults();
         assertTrue(client.isAvailable(),
                 "Ollama must be running at localhost:11434 for this smoke test");
 

@@ -50,7 +50,9 @@ public class GlossaryView
   private final List<GlossaryEntryCard> cards = new ArrayList<>();
 
   public GlossaryView() {
-    setSizeFull();
+    // Width only -- AppLayout scrolls the page natively; setSizeFull()
+    // would pin the view to viewport height and clip overflow.
+    setWidthFull();
     setPadding(true);
     setSpacing(true);
 
