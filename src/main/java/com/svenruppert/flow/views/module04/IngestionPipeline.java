@@ -82,6 +82,25 @@ public final class IngestionPipeline implements HasLogger {
         return chunkRegistry;
     }
 
+    /**
+     * Reverse lookup: returns the id under which {@code chunk} is
+     * registered, or {@code "(unknown)"} if no match is found.
+     *
+     * <p>Equality is structural via {@link Chunk#equals(Object)}. Two
+     * chunks that differ only in their source file but share the same
+     * text and index are indistinguishable here -- a trade-off we
+     * accept because the UI layer only uses the id for display.
+     *
+     * <p>Runs O(n) over the registry; called once per hit when the UI
+     * renders a result list, so no index is warranted.
+     */
+    public String idOf(Chunk chunk) {
+        for (Map.Entry<String, Chunk> e : chunkRegistry.entrySet()) {
+            if (e.getValue().equals(chunk)) return e.getKey();
+        }
+        return "(unknown)";
+    }
+
     /** Wipes both stores and the local registry. */
     public void clear() throws IOException {
         chunkRegistry.clear();

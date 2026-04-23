@@ -3,17 +3,16 @@ package com.svenruppert.flow.views.module04;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
+import com.svenruppert.flow.util.AsyncTask;
 import com.svenruppert.flow.util.UploadTempDir;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.ParameterDocs;
+import com.svenruppert.flow.views.help.PendingUploadZone;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
-import com.svenruppert.flow.views.module02.DefaultSimilarity;
-import com.svenruppert.flow.views.module02.InMemoryVectorStore;
 import com.svenruppert.flow.views.module03.Chunk;
 import com.svenruppert.flow.views.module03.Document;
 import com.svenruppert.flow.views.module03.FileDocumentLoader;
-import com.svenruppert.flow.views.module03.SentenceChunker;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -21,9 +20,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -36,23 +33,18 @@ import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.streams.UploadHandler;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Retrieval Lab -- the user-facing half of module 4.
@@ -108,8 +100,13 @@ public class Module04View
 
   // ------- session-scoped infrastructure ------------------------------
 
-  private InMemoryVectorStore vectorStore;
-  private LuceneBM25KeywordIndex keywordIndex;
+  /**
+   * Bundles the in-memory vector store, Lucene keyword index and
+   * {@link IngestionPipeline} wired to a common chunk registry, plus
+   * the retriever factories. Owns the Lucene index lifecycle.
+   */
+  private RetrievalLab lab;
+  /** Convenience alias for {@code lab.pipeline()} -- heavily referenced. */
   private IngestionPipeline pipeline;
   private UploadTempDir uploadTempDir;
   private int documentsIngested = 0;
@@ -117,27 +114,11 @@ public class Module04View
   // ------- widgets ---------------------------------------------------
 
   /**
-   * File names that have been uploaded but not yet ingested. We track
-   * the "still pending" subset ourselves to avoid re-ingesting on every
-   * click.
+   * Composite that owns the compact Upload, the pending-file chip
+   * strip and the Ingest button. Constructed in the view constructor
+   * where translations are available.
    */
-  private final Set<String> pendingFilenames = new LinkedHashSet<>();
-  private final HorizontalLayout pendingChips = new HorizontalLayout();
-
-  /**
-   * Bytes of every still-uncommitted upload, keyed by filename.
-   * Populated by the {@link UploadHandler#inMemory} callback and
-   * drained when the user clicks "Ingest". Replaces Vaadin 25's
-   * deprecated {@code MultiFileMemoryBuffer}.
-   */
-  private final Map<String, byte[]> pendingBytes = new LinkedHashMap<>();
-  private final Upload upload = new Upload(
-      UploadHandler.inMemory((metadata, bytes) -> {
-        pendingBytes.put(metadata.fileName(), bytes);
-        pendingFilenames.add(metadata.fileName());
-        renderPendingChips();
-      }));
-  private final Button ingestButton = new Button();
+  private PendingUploadZone uploadZone;
   private final Paragraph corpusFooter = new Paragraph();
 
   private final TextField queryField = new TextField();
@@ -182,15 +163,11 @@ public class Module04View
   private Map<com.svenruppert.flow.views.module03.Chunk, Double> firstStageScores = Map.of();
 
   /**
-   * Thinking captured from the LLM-as-judge reranker during the last
-   * search, keyed by the candidate whose reply carried it. Populated
-   * via the {@link LlmJudgeReranker}'s observer constructor and read
-   * back after rerank completes to drive {@link #judgeThinkingPanel}.
+   * Owns the collapsible "judge thinking" panel and drives the
+   * LLM-as-judge rerank pass. Constructed in the view ctor where
+   * translations are available.
    */
-  private final Map<com.svenruppert.flow.views.module03.Chunk, String>
-      judgeThinking = new LinkedHashMap<>();
-  private final Div judgeThinkingBody = new Div();
-  private final Details judgeThinkingPanel = new Details("", judgeThinkingBody);
+  private JudgeRerankController judge;
 
   public Module04View() {
     this(DefaultLlmClient.withDefaults());
@@ -207,9 +184,17 @@ public class Module04View
     vectorWeightField.setLabel(getTranslation("m04.field.vector.weight"));
     bm25WeightField.setLabel(getTranslation("m04.field.bm25.weight"));
     llmJudgeModel.setLabel(getTranslation("m04.field.judge.model"));
-    ingestButton.setText(getTranslation("m04.button.ingest"));
+    this.uploadZone = new PendingUploadZone(new PendingUploadZone.Labels(
+        getTranslation("m04.upload.drop"),
+        getTranslation("m04.chip.empty"),
+        getTranslation("m04.chip.remove.title"),
+        getTranslation("m04.button.ingest")));
+    uploadZone.ingestButton().addClickListener(e -> onIngest());
     searchButton.setText(getTranslation("m04.button.search"));
-    judgeThinkingPanel.setSummaryText(getTranslation("m04.judge.thinking.title"));
+    this.judge = new JudgeRerankController(
+        getTranslation("m04.judge.thinking.title"),
+        offset -> getTranslation("m04.judge.thinking.chunk", offset),
+        shown -> getTranslation("m04.judge.thinking.summary", shown));
 
     // setSizeFull() pins this view to the viewport height, which forces
     // the results grid to share a cramped column with the ingestion and
@@ -224,7 +209,7 @@ public class Module04View
     add(buildIngestionZone());
     add(buildRetrievalControls());
     add(buildResultsZone());
-    add(buildJudgeThinkingPanel());
+    add(judge.panel());
 
     // Default selections and event wiring.
     retrieverGroup.setItems(RetrieverChoice.values());
@@ -237,7 +222,6 @@ public class Module04View
     rerankerGroup.setValue(RerankerChoice.NONE);
     rerankerGroup.addValueChangeListener(e -> refreshConditionalParams());
 
-    ingestButton.addClickListener(e -> onIngest());
     searchButton.addClickListener(e -> onSearch());
 
     refreshConditionalParams();
@@ -249,10 +233,8 @@ public class Module04View
   protected void onAttach(AttachEvent event) {
     super.onAttach(event);
     try {
-      this.vectorStore = new InMemoryVectorStore(new DefaultSimilarity());
-      this.keywordIndex = new LuceneBM25KeywordIndex();
-      this.pipeline = new IngestionPipeline(llmClient, EMBEDDING_MODEL,
-          new SentenceChunker(400), vectorStore, keywordIndex);
+      this.lab = RetrievalLab.create(llmClient, EMBEDDING_MODEL);
+      this.pipeline = lab.pipeline();
       this.uploadTempDir = UploadTempDir.create("module04-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise retrieval lab", e);
@@ -265,7 +247,7 @@ public class Module04View
   @Override
   protected void onDetach(DetachEvent event) {
     try {
-      if (keywordIndex != null) keywordIndex.close();
+      if (lab != null) lab.close();
     } catch (IOException e) {
       logger().warn("Keyword index close failed: {}", e.getMessage());
     }
@@ -286,53 +268,13 @@ public class Module04View
   }
 
   private Component buildIngestionZone() {
-    upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
-    upload.setMaxFiles(10);
-    // Compact visual: fixed width via CSS, internal file list hidden --
-    // we render our own chip row next to it.
-    upload.addClassName("compact-upload");
-    upload.setDropLabel(new Span(getTranslation("m04.upload.drop")));
-    // Pending-chip update is wired through the UploadHandler in the
-    // field initialiser; no succeeded-listener needed here.
-
-    pendingChips.addClassName("pending-chips");
-    pendingChips.setSpacing(false);
-    renderPendingChips();
-
     corpusFooter.addClassName("m04-corpus-footer");
-
-    HorizontalLayout row = new HorizontalLayout(
-        upload, pendingChips, ingestButton, corpusFooter);
+    HorizontalLayout row = new HorizontalLayout(uploadZone, corpusFooter);
     row.setAlignItems(FlexComponent.Alignment.CENTER);
     row.setSpacing(true);
     row.setWidthFull();
-    row.setFlexGrow(1, pendingChips);
+    row.setFlexGrow(1, uploadZone);
     return row;
-  }
-
-  /**
-   * Rebuilds the chip strip from {@link #pendingFilenames}. Each chip
-   * is a click target that drops that file from the queue, so a user
-   * can deselect a mis-picked upload without having to restart.
-   */
-  private void renderPendingChips() {
-    pendingChips.removeAll();
-    if (pendingFilenames.isEmpty()) {
-      Span empty = new Span(getTranslation("m04.chip.empty"));
-      empty.addClassName("pending-chip-empty");
-      pendingChips.add(empty);
-      return;
-    }
-    for (String name : pendingFilenames) {
-      Span chip = new Span(name + "  \u00D7");
-      chip.addClassName("pending-chip");
-      chip.getElement().setAttribute("title", getTranslation("m04.chip.remove.title"));
-      chip.addClickListener(e -> {
-        pendingFilenames.remove(name);
-        renderPendingChips();
-      });
-      pendingChips.add(chip);
-    }
   }
 
   private Component buildRetrievalControls() {
@@ -386,7 +328,7 @@ public class Module04View
   private Component buildResultsZone() {
     resultsGrid.addColumn(new ComponentRenderer<>(this::renderSourcePill))
         .setHeader(getTranslation("m04.grid.col.source")).setAutoWidth(true);
-    resultsGrid.addColumn(h -> chunkIdFor(h))
+    resultsGrid.addColumn(h -> pipeline.idOf(h.chunk()))
         .setHeader(getTranslation("m04.grid.col.chunk.id")).setAutoWidth(true);
     // "First-stage score" is hidden by default. It is turned on whenever
     // a reranker is selected, so participants can compare the score the
@@ -408,21 +350,6 @@ public class Module04View
     resultsGrid.setWidthFull();
     resultsGrid.addClassName("m04-results-grid");
     return resultsGrid;
-  }
-
-  /**
-   * Collapsible panel below the grid showing the judge-LLM's reasoning
-   * per candidate. Populated only when the LLM-as-judge reranker runs
-   * and the chosen model actually emits {@code <think>...</think>}
-   * blocks -- deepseek-r1, qwen3-*thinking*, ... . For a non-thinking
-   * model or any other reranker the panel stays hidden.
-   */
-  private Component buildJudgeThinkingPanel() {
-    judgeThinkingBody.addClassName("judge-thinking-body");
-    judgeThinkingPanel.addClassName("judge-thinking-panel");
-    judgeThinkingPanel.setOpened(false);
-    judgeThinkingPanel.setVisible(false);
-    return judgeThinkingPanel;
   }
 
   private Component renderSourcePill(RetrievalHit hit) {
@@ -462,38 +389,28 @@ public class Module04View
       Notification.show(getTranslation("m04.error.not.init"));
       return;
     }
-    if (pendingFilenames.isEmpty()) {
+    if (!uploadZone.hasPending()) {
       Notification.show(getTranslation("m04.error.no.files"));
       return;
     }
     FileDocumentLoader loader = new FileDocumentLoader();
     int before = pipeline.chunkRegistry().size();
-    int processed = 0;
-    // Drain a snapshot so we can mutate pendingFilenames as we go.
-    for (String fileName : List.copyOf(pendingFilenames)) {
-      byte[] bytes = pendingBytes.get(fileName);
-      if (bytes == null) {
-        pendingFilenames.remove(fileName);
-        continue;
-      }
-      try {
-        Path written = uploadTempDir.resolve(fileName);
-        Files.write(written, bytes);
-        Document doc = loader.load(written);
-        pipeline.ingest(doc);
-        documentsIngested++;
-        processed++;
-      } catch (IOException e) {
-        logger().warn("Ingest of {} failed: {}", fileName, e.getMessage());
-        Notification.show(getTranslation("m04.error.ingest", fileName, e.getMessage()));
-      } finally {
-        pendingFilenames.remove(fileName);
-        pendingBytes.remove(fileName);
-      }
-    }
-    renderPendingChips();
+    int[] processed = {0};
+    uploadZone.drain(
+        (fileName, bytes) -> {
+          Path written = uploadTempDir.resolve(fileName);
+          Files.write(written, bytes);
+          Document doc = loader.load(written);
+          pipeline.ingest(doc);
+          documentsIngested++;
+          processed[0]++;
+        },
+        (fileName, msg) -> {
+          logger().warn("Ingest of {} failed: {}", fileName, msg);
+          Notification.show(getTranslation("m04.error.ingest", fileName, msg));
+        });
     int added = pipeline.chunkRegistry().size() - before;
-    Notification.show(getTranslation("m04.notify.ingested", processed, added));
+    Notification.show(getTranslation("m04.notify.ingested", processed[0], added));
     refreshCorpusFooter();
   }
 
@@ -524,9 +441,7 @@ public class Module04View
 
     // Reset per-run UI state. Judge-thinking accumulates during the
     // rerank pass; clear it here so a fresh search starts empty.
-    judgeThinking.clear();
-    judgeThinkingBody.removeAll();
-    judgeThinkingPanel.setVisible(false);
+    judge.reset();
     resultsGrid.setItems(List.of());
     firstStageScoreColumn.setVisible(rerankerActive);
     scoreColumn.setHeader(rerankerActive
@@ -551,86 +466,75 @@ public class Module04View
     UI ui = UI.getCurrent();
     Retriever retriever = buildRetriever(retrieverChoice);
 
-    Thread.ofVirtual().name("m4-search-" + System.nanoTime()).start(() ->
-        runSearchAsync(ui, query, topK, firstStageK, retriever,
-            rerankerActive, judgeModel));
+    AsyncTask.runInBackground(ui, "m4-search",
+        () -> runSearchAsync(ui, query, topK, firstStageK, retriever,
+            rerankerActive, judgeModel),
+        e -> {
+          logger().warn("Search failed: {}", e.getMessage(), e);
+          Notification.show(getTranslation("m04.error.search", e.getMessage()));
+          latencyLabel.setText(getTranslation("m04.status.error"));
+          rerankStatus.setText(getTranslation("m04.status.error.detail", e.getMessage()));
+          searchButton.setEnabled(true);
+        });
   }
 
   /**
    * Virtual-thread body for {@link #onSearch()}. Every UI touch goes
    * through {@link UI#access(com.vaadin.flow.server.Command)} so Vaadin
    * can push updates incrementally rather than batching them at the
-   * end of a long synchronous event.
+   * end of a long synchronous event. Exception handling is delegated
+   * to {@link AsyncTask#runInBackground}.
    */
   private void runSearchAsync(UI ui, String query, int topK, int firstStageK,
                               Retriever retriever, boolean rerankerActive,
                               String judgeModel) {
     long t0 = System.nanoTime();
-    try {
-      List<RetrievalHit> firstStageHits = retriever.retrieve(query, firstStageK);
-      Map<com.svenruppert.flow.views.module03.Chunk, Double> fsSnapshot =
-          snapshotScores(firstStageHits);
+    List<RetrievalHit> firstStageHits = retriever.retrieve(query, firstStageK);
+    Map<com.svenruppert.flow.views.module03.Chunk, Double> fsSnapshot =
+        snapshotScores(firstStageHits);
 
-      ui.access(() -> {
-        firstStageScores = fsSnapshot;
-        if (rerankerActive) {
-          rerankStatus.setText(getTranslation("m04.status.reranking.progress",
-              0, firstStageHits.size()));
-        }
-      });
-
-      List<RetrievalHit> displayed;
+    ui.access(() -> {
+      firstStageScores = fsSnapshot;
       if (rerankerActive) {
-        displayed = rerankWithProgress(ui, query, firstStageHits, topK, judgeModel);
-      } else {
-        displayed = firstStageHits.stream().limit(topK).toList();
+        rerankStatus.setText(getTranslation("m04.status.reranking.progress",
+            0, firstStageHits.size()));
       }
+    });
 
-      double millis = (System.nanoTime() - t0) / 1.0e6;
-      List<RetrievalHit> finalHits = displayed.stream()
-          .sorted(Comparator.comparingDouble(RetrievalHit::score).reversed())
-          .toList();
-
-      ui.access(() -> {
-        resultsGrid.setItems(finalHits);
-        latencyLabel.setText(getTranslation("m04.latency.format",
-            String.format(Locale.ROOT, "%.2f", millis)));
-        if (rerankerActive) {
-          rerankProgress.setValue(1.0);
-          rerankStatus.setText(getTranslation("m04.status.done", finalHits.size()));
-        }
-        searchButton.setEnabled(true);
-      });
-    } catch (RuntimeException e) {
-      logger().warn("Search failed: {}", e.getMessage(), e);
-      ui.access(() -> {
-        Notification.show(getTranslation("m04.error.search", e.getMessage()));
-        latencyLabel.setText(getTranslation("m04.status.error"));
-        rerankStatus.setText(getTranslation("m04.status.error.detail", e.getMessage()));
-        searchButton.setEnabled(true);
-      });
+    List<RetrievalHit> displayed;
+    if (rerankerActive) {
+      displayed = rerankWithProgress(ui, query, firstStageHits, topK, judgeModel);
+    } else {
+      displayed = firstStageHits.stream().limit(topK).toList();
     }
+
+    double millis = (System.nanoTime() - t0) / 1.0e6;
+    List<RetrievalHit> finalHits = displayed.stream()
+        .sorted(Comparator.comparingDouble(RetrievalHit::score).reversed())
+        .toList();
+
+    ui.access(() -> {
+      resultsGrid.setItems(finalHits);
+      latencyLabel.setText(getTranslation("m04.latency.format",
+          String.format(Locale.ROOT, "%.2f", millis)));
+      if (rerankerActive) {
+        rerankProgress.setValue(1.0);
+        rerankStatus.setText(getTranslation("m04.status.done", finalHits.size()));
+      }
+      searchButton.setEnabled(true);
+    });
   }
 
   /**
    * Runs the LLM-as-judge rerank while feeding progress back into the
-   * UI via {@link UI#access}. The reranker's progress observer fires
-   * on STARTED/FINISHED per candidate; we update the progress bar,
-   * the status text and -- once the candidate's reply is in -- the
-   * judge-thinking panel, all while the virtual thread is still
-   * iterating.
+   * UI via {@link UI#access}. The thinking panel is owned by
+   * {@link JudgeRerankController}; this method only supplies the
+   * progress observer for the view's own progress bar + status label.
    */
   private List<RetrievalHit> rerankWithProgress(UI ui, String query,
                                                 List<RetrievalHit> firstStageHits,
                                                 int topK, String judgeModel) {
-    LlmJudgeReranker reranker = new LlmJudgeReranker(
-        llmClient, judgeModel,
-        (candidate, thinking) -> ui.access(() -> {
-          // Observer fires on the virtual thread; hop to the UI
-          // thread for the map mutation + panel re-render.
-          judgeThinking.put(candidate.chunk(), thinking);
-          rebuildJudgeThinkingPanel();
-        }),
+    return judge.rerank(ui, llmClient, judgeModel, query, firstStageHits, topK,
         (phase, index, total, hit) -> ui.access(() -> {
           int oneBased = index + 1;
           if (phase == LlmJudgeReranker.Phase.STARTED) {
@@ -644,42 +548,6 @@ public class Module04View
             rerankProgress.setValue(((double) oneBased) / total);
           }
         }));
-    return reranker.rerank(query, firstStageHits, topK);
-  }
-
-  /**
-   * Renders every captured judge-thinking entry in insertion order.
-   * Called incrementally as the reranker finishes each candidate so
-   * participants watch the reasoning appear in real time, and once
-   * more after the search finishes.
-   */
-  private void rebuildJudgeThinkingPanel() {
-    judgeThinkingBody.removeAll();
-    if (judgeThinking.isEmpty()) {
-      judgeThinkingPanel.setVisible(false);
-      return;
-    }
-    int shown = 0;
-    for (Map.Entry<com.svenruppert.flow.views.module03.Chunk, String> entry
-        : judgeThinking.entrySet()) {
-      if (entry.getValue() == null || entry.getValue().isEmpty()) continue;
-      Div box = new Div();
-      box.addClassName("judge-thinking-entry");
-      Span heading = new Span(getTranslation("m04.judge.thinking.chunk",
-          entry.getKey().startOffset()));
-      heading.addClassName("heading");
-      box.add(heading, new Span(entry.getValue()));
-      judgeThinkingBody.add(box);
-      shown++;
-    }
-    if (shown == 0) {
-      judgeThinkingPanel.setVisible(false);
-      return;
-    }
-    judgeThinkingPanel.setSummaryText(
-        getTranslation("m04.judge.thinking.summary", shown));
-    judgeThinkingPanel.setVisible(true);
-    judgeThinkingPanel.setOpened(true);
   }
 
   private Map<com.svenruppert.flow.views.module03.Chunk, Double>
@@ -692,22 +560,18 @@ public class Module04View
   }
 
   private Retriever buildRetriever(RetrieverChoice choice) {
-    VectorRetriever vector = new VectorRetriever(
-        llmClient, EMBEDDING_MODEL, vectorStore, pipeline.chunkRegistry());
-    BM25Retriever bm25 = new BM25Retriever(keywordIndex, pipeline.chunkRegistry());
-
+    int candidateK = Math.max(valueOr(topKField, 5) * 2, 10);
     return switch (choice) {
-      case VECTOR -> vector;
-      case BM25 -> bm25;
-      case HYBRID_RRF -> new HybridRetriever(vector, bm25,
-          new FusionStrategy.ReciprocalRankFusion(
-              valueOr(rrfKField, 60.0)),
-          Math.max(valueOr(topKField, 5) * 2, 10));
-      case HYBRID_WEIGHTED -> new HybridRetriever(vector, bm25,
+      case VECTOR -> lab.vectorRetriever();
+      case BM25 -> lab.bm25Retriever();
+      case HYBRID_RRF -> lab.hybridRetriever(
+          new FusionStrategy.ReciprocalRankFusion(valueOr(rrfKField, 60.0)),
+          candidateK);
+      case HYBRID_WEIGHTED -> lab.hybridRetriever(
           new FusionStrategy.WeightedScoreFusion(
               valueOr(vectorWeightField, 0.6),
               valueOr(bm25WeightField, 0.4)),
-          Math.max(valueOr(topKField, 5) * 2, 10));
+          candidateK);
     };
   }
 
@@ -746,14 +610,6 @@ public class Module04View
   private static double valueOr(NumberField field, double fallback) {
     Double v = field.getValue();
     return (v == null) ? fallback : v;
-  }
-
-  private String chunkIdFor(RetrievalHit hit) {
-    return pipeline.chunkRegistry().entrySet().stream()
-        .filter(e -> e.getValue().equals(hit.chunk()))
-        .map(Map.Entry::getKey)
-        .findFirst()
-        .orElse("(unknown)");
   }
 
   private static String preview(String text, int max) {

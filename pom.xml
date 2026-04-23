@@ -49,10 +49,10 @@
     </issueManagement>
     <licenses>
         <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <name>European Union Public Licence 1.2</name>
+            <url>https://spdx.org/licenses/EUPL-1.2.html</url>
             <distribution>repo</distribution>
-            <comments>A business-friendly OSS license</comments>
+            <comments>SPDX: EUPL-1.2</comments>
         </license>
     </licenses>
 
@@ -270,12 +270,12 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>10.1.0</version>
+            <version>10.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analysis-common</artifactId>
-            <version>10.1.0</version>
+            <version>10.4.0</version>
         </dependency>
     </dependencies>
 

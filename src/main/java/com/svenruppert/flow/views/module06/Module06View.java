@@ -2,10 +2,12 @@ package com.svenruppert.flow.views.module06;
 
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
+import com.svenruppert.flow.util.AsyncTask;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
 import com.svenruppert.flow.views.help.RetrievalSourcesPanel;
+import com.svenruppert.flow.views.help.StageProgress;
 import com.svenruppert.flow.views.help.ThinkingPanel;
 import com.svenruppert.flow.views.help.ThrottledUiBuffer;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
@@ -516,28 +518,22 @@ public class Module06View
     ThrottledUiBuffer liveThinking =
         new ThrottledUiBuffer(ui, 75, thinkingPanel::showStreaming);
 
-    Thread.ofVirtual().name("m6-ask-" + System.currentTimeMillis()).start(() -> {
-      try {
-        GeneratedAnswer answer = ragSystem.ask(query,
-            token -> {
-              live.append(token);
-            },
-            thinkingToken -> {
-              liveThinking.append(thinkingToken);
-            },
-            stage -> ui.access(() -> applyStage(stage)));
-        ui.access(() -> finalise(answer));
-      } catch (RuntimeException e) {
-        logger().warn("ask failed: {}", e.getMessage());
-        ui.access(() -> {
+    AsyncTask.runInBackground(ui, "m6-ask",
+        () -> {
+          GeneratedAnswer answer = ragSystem.ask(query,
+              live::append,
+              liveThinking::append,
+              stage -> ui.access(() -> applyStage(stage)));
+          ui.access(() -> finalise(answer));
+        },
+        e -> {
+          logger().warn("ask failed: {}", e.getMessage());
           Notification.show(getTranslation("m06.error.ask", e.getMessage()));
           statusLabel.setText(getTranslation("m06.status.error.detail", e.getMessage()));
           progress.setIndeterminate(false);
           progressStatus.setText(getTranslation("m06.status.error.detail", e.getMessage()));
           askButton.setEnabled(true);
         });
-      }
-    });
   }
 
   /**
@@ -548,32 +544,15 @@ public class Module06View
    * the long generation step.
    */
   private void applyStage(RagPipeline.Stage stage) {
-    double fraction = switch (stage) {
-      case RETRIEVAL_STARTED -> 0.05;
-      case RETRIEVAL_FINISHED -> 0.15;
-      case GENERATION_STARTED -> 0.20;
-      // Grounding is on by default in module 6; if a user's build
-      // disables it, GENERATION_FINISHED is the last transition before
-      // DONE, so we cap at 0.80 here and let DONE land at 1.0.
-      case GENERATION_FINISHED -> 0.80;
-      case GROUNDING_STARTED -> 0.85;
-      case GROUNDING_FINISHED -> 1.0;
-      case DONE -> 1.0;
-    };
-    String label = switch (stage) {
-      case RETRIEVAL_STARTED -> getTranslation("m06.stage.retrieval.started");
-      case RETRIEVAL_FINISHED -> getTranslation("m06.stage.retrieval.finished");
-      case GENERATION_STARTED -> getTranslation("m06.stage.generation.started");
-      case GENERATION_FINISHED -> getTranslation("m06.stage.generation.finished");
-      case GROUNDING_STARTED -> getTranslation("m06.stage.grounding.started");
-      case GROUNDING_FINISHED -> getTranslation("m06.stage.grounding.finished");
-      case DONE -> getTranslation("m06.stage.done");
-    };
+    // Grounding is always on in module 6. The fractions and label
+    // suffixes are owned by StageProgress; here we only prefix to the
+    // m06.* key space and drive the extra step-chip state machine.
+    StageProgress.Phase phase = StageProgress.phase(stage, true);
     // First stage tick flips the bar from indeterminate (query-embed
     // phase) to determinate weighted fractions.
     if (progress.isIndeterminate()) progress.setIndeterminate(false);
-    progress.setValue(fraction);
-    progressStatus.setText(label);
+    progress.setValue(phase.fraction());
+    progressStatus.setText(getTranslation("m06.stage." + phase.labelSuffix()));
 
     switch (stage) {
       case RETRIEVAL_STARTED -> setChip(stepRetrieve, "active");

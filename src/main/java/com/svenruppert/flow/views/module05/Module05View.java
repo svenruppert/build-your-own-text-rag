@@ -3,29 +3,25 @@ package com.svenruppert.flow.views.module05;
 import com.svenruppert.dependencies.core.logger.HasLogger;
 import com.svenruppert.flow.MainLayout;
 import com.svenruppert.flow.WorkshopDefaults;
+import com.svenruppert.flow.util.AsyncTask;
 import com.svenruppert.flow.util.UploadTempDir;
 import com.svenruppert.flow.views.help.ExpandableHelp;
 import com.svenruppert.flow.views.help.MarkdownSupport;
 import com.svenruppert.flow.views.help.ParameterDocs;
+import com.svenruppert.flow.views.help.PendingUploadZone;
 import com.svenruppert.flow.views.help.RetrievalSourcesPanel;
+import com.svenruppert.flow.views.help.StageProgress;
 import com.svenruppert.flow.views.help.ThinkingPanel;
 import com.svenruppert.flow.views.help.ThrottledUiBuffer;
 import com.svenruppert.flow.views.module01.DefaultLlmClient;
 import com.svenruppert.flow.views.module01.LlmClient;
 import com.svenruppert.flow.views.module01.LlmConfig;
-import com.svenruppert.flow.views.module02.DefaultSimilarity;
-import com.svenruppert.flow.views.module02.InMemoryVectorStore;
 import com.svenruppert.flow.views.module03.Document;
 import com.svenruppert.flow.views.module03.FileDocumentLoader;
-import com.svenruppert.flow.views.module03.SentenceChunker;
-import com.svenruppert.flow.views.module04.BM25Retriever;
 import com.svenruppert.flow.views.module04.FusionStrategy;
-import com.svenruppert.flow.views.module04.HybridRetriever;
 import com.svenruppert.flow.views.module04.IngestionPipeline;
-import com.svenruppert.flow.views.module04.LuceneBM25KeywordIndex;
-import com.svenruppert.flow.views.module04.RetrievalHit;
+import com.svenruppert.flow.views.module04.RetrievalLab;
 import com.svenruppert.flow.views.module04.Retriever;
-import com.svenruppert.flow.views.module04.VectorRetriever;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -47,19 +43,14 @@ import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.streams.UploadHandler;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -110,37 +101,26 @@ public class Module05View
 
   // ------- session-scoped infrastructure ------------------------------
 
-  private InMemoryVectorStore vectorStore;
-  private LuceneBM25KeywordIndex keywordIndex;
-  private OllamaStreamingApi streamingApi;
+  /**
+   * Bundles the in-memory vector store, Lucene keyword index and
+   * {@link IngestionPipeline} wired to a common chunk registry, plus
+   * the retriever factories. Owns the Lucene index lifecycle.
+   */
+  private RetrievalLab lab;
+  /** Convenience alias for {@code lab.pipeline()} -- heavily referenced. */
   private IngestionPipeline pipeline;
+  private OllamaStreamingApi streamingApi;
   private UploadTempDir uploadTempDir;
   private int documentsIngested = 0;
 
   // ------- ingestion widgets ------------------------------------------
 
   /**
-   * File names that have been uploaded but not yet ingested. We track
-   * the "still pending" subset ourselves and drive the chip strip from
-   * it -- same pattern as Module 4's Retrieval Lab.
+   * Composite widget for the compact Upload, pending-file chip strip
+   * and Ingest button. Constructed in the view ctor where translations
+   * are available.
    */
-  private final Set<String> pendingFilenames = new LinkedHashSet<>();
-  private final HorizontalLayout pendingChips = new HorizontalLayout();
-
-  /**
-   * Bytes of every still-uncommitted upload, keyed by filename.
-   * Populated by the {@link UploadHandler#inMemory} callback and
-   * drained when the user clicks "Ingest". Replaces Vaadin 25's
-   * deprecated {@code MultiFileMemoryBuffer}.
-   */
-  private final Map<String, byte[]> pendingBytes = new LinkedHashMap<>();
-  private final Upload upload = new Upload(
-      UploadHandler.inMemory((metadata, bytes) -> {
-        pendingBytes.put(metadata.fileName(), bytes);
-        pendingFilenames.add(metadata.fileName());
-        renderPendingChips();
-      }));
-  private final Button ingestButton = new Button();
+  private PendingUploadZone uploadZone;
   private final RadioButtonGroup<RetrieverChoice> retrieverGroup = new RadioButtonGroup<>();
   private final IntegerField retrievalKField = sizeField(5);
   private final Paragraph corpusFooter = new Paragraph();
@@ -190,7 +170,12 @@ public class Module05View
     this.llmConfig = Objects.requireNonNull(llmConfig, "llmConfig");
 
     // Set labels and texts
-    ingestButton.setText(getTranslation("m05.button.ingest"));
+    this.uploadZone = new PendingUploadZone(new PendingUploadZone.Labels(
+        getTranslation("m05.upload.drop"),
+        getTranslation("m05.chip.empty"),
+        getTranslation("m05.chip.remove.title"),
+        getTranslation("m05.button.ingest")));
+    uploadZone.ingestButton().addClickListener(e -> onIngest());
     retrievalKField.setLabel(getTranslation("m05.field.retrieval.k"));
     queryField.setLabel(getTranslation("m05.field.query"));
     modelSelector.setLabel(getTranslation("m05.field.model"));
@@ -218,7 +203,6 @@ public class Module05View
     retrieverGroup.setItemLabelGenerator(c -> getTranslation(c.labelKey));
     retrieverGroup.setValue(RetrieverChoice.HYBRID);
 
-    ingestButton.addClickListener(e -> onIngest());
     askButton.addClickListener(e -> onAsk());
 
     refusalBadge.setVisible(false);
@@ -231,11 +215,9 @@ public class Module05View
   protected void onAttach(AttachEvent event) {
     super.onAttach(event);
     try {
-      this.vectorStore = new InMemoryVectorStore(new DefaultSimilarity());
-      this.keywordIndex = new LuceneBM25KeywordIndex();
+      this.lab = RetrievalLab.create(llmClient, EMBEDDING_MODEL);
+      this.pipeline = lab.pipeline();
       this.streamingApi = new OllamaStreamingApi(llmConfig);
-      this.pipeline = new IngestionPipeline(llmClient, EMBEDDING_MODEL,
-          new SentenceChunker(400), vectorStore, keywordIndex);
       this.uploadTempDir = UploadTempDir.create("module05-upload-");
     } catch (IOException e) {
       logger().error("Could not initialise ask lab", e);
@@ -248,7 +230,7 @@ public class Module05View
   @Override
   protected void onDetach(DetachEvent event) {
     try {
-      if (keywordIndex != null) keywordIndex.close();
+      if (lab != null) lab.close();
     } catch (IOException e) {
       logger().warn("Keyword index close failed: {}", e.getMessage());
     }
@@ -279,23 +261,11 @@ public class Module05View
    * </ol>
    */
   private Component buildIngestionRow() {
-    upload.setAcceptedFileTypes("text/plain", "text/markdown", ".txt", ".md", ".markdown");
-    upload.setMaxFiles(10);
-    upload.addClassName("compact-upload");
-    upload.setDropLabel(new Span(getTranslation("m05.upload.drop")));
-    // Pending-chip update is wired through the UploadHandler in the
-    // field initialiser; no succeeded-listener needed here.
-
-    pendingChips.addClassName("pending-chips");
-    pendingChips.setSpacing(false);
-    renderPendingChips();
-
-    HorizontalLayout uploadRow = new HorizontalLayout(
-        upload, pendingChips, ingestButton, corpusFooter);
+    HorizontalLayout uploadRow = new HorizontalLayout(uploadZone, corpusFooter);
     uploadRow.setAlignItems(FlexComponent.Alignment.CENTER);
     uploadRow.setSpacing(true);
     uploadRow.setWidthFull();
-    uploadRow.setFlexGrow(1, pendingChips);
+    uploadRow.setFlexGrow(1, uploadZone);
 
     HorizontalLayout retrieverRow = new HorizontalLayout(
         ExpandableHelp.pair(retrieverGroup, ParameterDocs.M5_RETRIEVER_MODE),
@@ -308,30 +278,6 @@ public class Module05View
     box.setSpacing(false);
     box.setWidthFull();
     return box;
-  }
-
-  /**
-   * Rebuilds the chip strip from {@link #pendingFilenames}. Each chip
-   * removes its file from the queue when clicked.
-   */
-  private void renderPendingChips() {
-    pendingChips.removeAll();
-    if (pendingFilenames.isEmpty()) {
-      Span empty = new Span(getTranslation("m05.chip.empty"));
-      empty.addClassName("pending-chip-empty");
-      pendingChips.add(empty);
-      return;
-    }
-    for (String name : pendingFilenames) {
-      Span chip = new Span(name + "  \u00D7");
-      chip.addClassName("pending-chip");
-      chip.getElement().setAttribute("title", getTranslation("m05.chip.remove.title"));
-      chip.addClickListener(e -> {
-        pendingFilenames.remove(name);
-        renderPendingChips();
-      });
-      pendingChips.add(chip);
-    }
   }
 
   private Component buildAskRow() {
@@ -407,38 +353,28 @@ public class Module05View
       Notification.show(getTranslation("m05.error.not.init"));
       return;
     }
-    if (pendingFilenames.isEmpty()) {
+    if (!uploadZone.hasPending()) {
       Notification.show(getTranslation("m05.error.no.files"));
       return;
     }
     FileDocumentLoader loader = new FileDocumentLoader();
     int before = pipeline.chunkRegistry().size();
-    int processed = 0;
-    // Snapshot so we can mutate pendingFilenames in the finally clause.
-    for (String fileName : List.copyOf(pendingFilenames)) {
-      byte[] bytes = pendingBytes.get(fileName);
-      if (bytes == null) {
-        pendingFilenames.remove(fileName);
-        continue;
-      }
-      try {
-        Path written = uploadTempDir.resolve(fileName);
-        Files.write(written, bytes);
-        Document document = loader.load(written);
-        pipeline.ingest(document);
-        documentsIngested++;
-        processed++;
-      } catch (IOException e) {
-        logger().warn("Ingest of {} failed: {}", fileName, e.getMessage());
-        Notification.show(getTranslation("m05.error.ingest", fileName, e.getMessage()));
-      } finally {
-        pendingFilenames.remove(fileName);
-        pendingBytes.remove(fileName);
-      }
-    }
-    renderPendingChips();
+    int[] processed = {0};
+    uploadZone.drain(
+        (fileName, bytes) -> {
+          Path written = uploadTempDir.resolve(fileName);
+          Files.write(written, bytes);
+          Document document = loader.load(written);
+          pipeline.ingest(document);
+          documentsIngested++;
+          processed[0]++;
+        },
+        (fileName, msg) -> {
+          logger().warn("Ingest of {} failed: {}", fileName, msg);
+          Notification.show(getTranslation("m05.error.ingest", fileName, msg));
+        });
     int added = pipeline.chunkRegistry().size() - before;
-    Notification.show(getTranslation("m05.notify.ingested", processed, added));
+    Notification.show(getTranslation("m05.notify.ingested", processed[0], added));
     refreshCorpusFooter();
   }
 
@@ -501,69 +437,40 @@ public class Module05View
     ThrottledUiBuffer liveThinking =
         new ThrottledUiBuffer(ui, 75, thinkingPanel::showStreaming);
 
-    Thread.ofVirtual().name("m5-ask-" + System.currentTimeMillis()).start(() -> {
-      try {
-        GeneratedAnswer answer = rag.ask(query, retrievalK, model,
-            token -> {
-              liveAnswer.append(token);
-            },
-            thinkingToken -> {
-              liveThinking.append(thinkingToken);
-            },
-            stage -> ui.access(() -> applyStage(stage, groundingEnabled)));
-        ui.access(() -> finaliseAnswer(answer));
-      } catch (RuntimeException e) {
-        logger().warn("ask-worker failed: {}", e.getMessage());
-        ui.access(() -> {
+    AsyncTask.runInBackground(ui, "m5-ask",
+        () -> {
+          GeneratedAnswer answer = rag.ask(query, retrievalK, model,
+              liveAnswer::append,
+              liveThinking::append,
+              stage -> ui.access(() -> applyStage(stage, groundingEnabled)));
+          ui.access(() -> finaliseAnswer(answer));
+        },
+        e -> {
+          logger().warn("ask-worker failed: {}", e.getMessage());
           Notification.show(getTranslation("m05.error.ask", e.getMessage()));
           askButton.setEnabled(true);
           latencyLabel.setText(getTranslation("m05.status.error"));
           askStatus.setText(getTranslation("m05.status.error.detail", e.getMessage()));
         });
-      }
-    });
   }
 
   /**
    * Maps a pipeline phase transition to a progress-bar value and
-   * status-label text. The mapping is coarse on purpose: the phases
-   * are few, their durations wildly different, and the intent is to
-   * tell participants what the pipeline is <em>doing</em> right now,
-   * not to estimate a true time-to-completion.
+   * status-label text. Fractions and label suffixes come from the
+   * shared {@link StageProgress} table; the suffix is bound to the
+   * {@code m05.stage.*} key space locally.
    */
   private void applyStage(RagPipeline.Stage stage, boolean groundingEnabled) {
-    double fraction = switch (stage) {
-      case RETRIEVAL_STARTED -> 0.05;
-      case RETRIEVAL_FINISHED -> 0.15;
-      case GENERATION_STARTED -> 0.20;
-      case GENERATION_FINISHED -> groundingEnabled ? 0.75 : 1.0;
-      case GROUNDING_STARTED -> 0.80;
-      case GROUNDING_FINISHED -> 1.0;
-      case DONE -> 1.0;
-    };
-    String label = switch (stage) {
-      case RETRIEVAL_STARTED -> getTranslation("m05.stage.retrieval.started");
-      case RETRIEVAL_FINISHED -> getTranslation("m05.stage.retrieval.finished");
-      case GENERATION_STARTED -> getTranslation("m05.stage.generation.started");
-      case GENERATION_FINISHED -> groundingEnabled
-          ? getTranslation("m05.stage.generation.finished.grounding")
-          : getTranslation("m05.stage.done");
-      case GROUNDING_STARTED -> getTranslation("m05.stage.grounding.started");
-      case GROUNDING_FINISHED -> getTranslation("m05.stage.grounding.finished");
-      case DONE -> getTranslation("m05.stage.done");
-    };
-    askProgress.setValue(fraction);
-    askStatus.setText(label);
+    StageProgress.Phase phase = StageProgress.phase(stage, groundingEnabled);
+    askProgress.setValue(phase.fraction());
+    askStatus.setText(getTranslation("m05.stage." + phase.labelSuffix()));
   }
 
   private Retriever buildRetriever() {
-    VectorRetriever vector = new VectorRetriever(
-        llmClient, EMBEDDING_MODEL, vectorStore, pipeline.chunkRegistry());
-    BM25Retriever bm25 = new BM25Retriever(keywordIndex, pipeline.chunkRegistry());
     return switch (retrieverGroup.getValue()) {
-      case VECTOR -> vector;
-      case BM25 -> bm25;
-      case HYBRID -> new HybridRetriever(vector, bm25,
+      case VECTOR -> lab.vectorRetriever();
+      case BM25 -> lab.bm25Retriever();
+      case HYBRID -> lab.hybridRetriever(
           new FusionStrategy.ReciprocalRankFusion(60.0),
           Math.max(valueOr(retrievalKField, 5) * 2, 10));
     };
@@ -585,7 +492,8 @@ public class Module05View
 
     refusalBadge.setVisible(answer.refusalDetected());
     renderGroundingBadge(answer.groundingCheck());
-    sourcesPanel.renderWithCitations(answer.usedHits(), cited, this::chunkIdFor);
+    sourcesPanel.renderWithCitations(answer.usedHits(), cited,
+        hit -> pipeline.idOf(hit.chunk()));
     finaliseThinking(answer.thinking());
     askButton.setEnabled(true);
   }
@@ -652,14 +560,6 @@ public class Module05View
   private static int valueOr(IntegerField field, int fallback) {
     Integer v = field.getValue();
     return (v == null || v <= 0) ? fallback : v;
-  }
-
-  private String chunkIdFor(RetrievalHit hit) {
-    return pipeline.chunkRegistry().entrySet().stream()
-        .filter(e -> e.getValue().equals(hit.chunk()))
-        .map(Map.Entry::getKey)
-        .findFirst()
-        .orElse("(unknown)");
   }
 
 }
